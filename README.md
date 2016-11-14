@@ -16,9 +16,43 @@ This project requires **Python 3.5** and the following Python libraries installe
 - [scikit-learn](http://scikit-learn.org/)
 - [TensorFlow](http://tensorflow.org)
 
+
+## Setup
+### OS X and Linux
+#### Install Anaconda
+This lab requires [Anaconda](https://www.continuum.io/downloads) and [Python 3.4](https://www.python.org/downloads/) or higher. If you don't meet all of these requirements, install the appropriate package(s).
+#### Run the Anaconda Environment
+Run these commands in your terminal to install all requirements:
+```
+$ git clone https://github.com/matthewzimmer/traffic-sign-classification.git
+$ conda env create -f environment.yml
+$ conda install --name traffic-sign-classification -c conda-forge tensorflow
+```
+
 Run this command at the terminal prompt to install [OpenCV](http://opencv.org/). Useful for image processing:
 
-- `conda install -c https://conda.anaconda.org/menpo opencv3`
+```
+$ conda install -c https://conda.anaconda.org/menpo opencv3
+```
+
+## Run the Notebook
+### Start a Jupyter Server
+Make sure to run the server from the same directory that you ran in the *Setup* steps above.
+
+#### OS X and Linux
+```
+$ source activate traffic-sign-classification
+$ jupyter notebook
+```
+
+## Useful Conda Commands
+
+#### Update a conda environment
+
+```
+$ conda env update -f environment.yml
+```
+
 
 ### Dataset
 

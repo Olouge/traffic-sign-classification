@@ -6,3 +6,5 @@ models
 *.p
 .idea
 *.iml
+.idea
+traffic-sign-data.zip
