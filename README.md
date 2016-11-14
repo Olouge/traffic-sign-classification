@@ -20,7 +20,7 @@ This project requires **Python 3.5** and the following Python libraries installe
 ## Setup
 ### OS X and Linux
 #### Install Anaconda
-This lab requires [Anaconda](https://www.continuum.io/downloads) and [Python 3.4](https://www.python.org/downloads/) or higher. If you don't meet all of these requirements, install the appropriate package(s).
+This project requires [Anaconda](https://www.continuum.io/downloads) and [Python 3.4](https://www.python.org/downloads/) or higher. If you don't meet all of these requirements, install the appropriate package(s).
 #### Run the Anaconda Environment
 Run these commands in your terminal to install all requirements:
 ```
