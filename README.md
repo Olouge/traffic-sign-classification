@@ -26,6 +26,7 @@ Run these commands in your terminal to install all requirements:
 ```
 $ git clone https://github.com/matthewzimmer/traffic-sign-classification.git
 $ conda env create -f environment.yml
+$ source activate traffic-sign-classification
 $ conda install --name traffic-sign-classification -c conda-forge tensorflow
 ```
 
