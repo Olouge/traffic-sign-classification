@@ -8,3 +8,8 @@ models
 *.iml
 .idea
 traffic-sign-data.zip
+traffic-sign-data
+
+notMNIST_train.zip
+notMNIST_test.zip
+notMNIST.pickle
