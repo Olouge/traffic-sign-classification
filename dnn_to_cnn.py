@@ -43,6 +43,7 @@ n_hidden_layer = 256  # layer number of features
 
 # tf Graph input
 x = tf.placeholder("float", [None, 28, 28, 1])
+# Define loss and optimizer
 y_ = tf.placeholder("float", [None, n_classes])
 x_flat = tf.reshape(x, [-1, n_input])
 print('x reshaped from 28*28*1 to {}*1 vector'.format(n_input))
@@ -151,8 +152,24 @@ with tf.Session() as sess:
             sess.run(optimizer, feed_dict={x: batch_x, y_: batch_y})
 
     # Test trained model
+
+    """
+    Well, first let's figure out where we predicted the correct label. tf.argmax is an extremely useful function which
+    gives you the index of the highest entry in a tensor along some axis. For example, tf.argmax(y,1) is the label our
+    model thinks is most likely for each input, while tf.argmax(y_,1) is the correct label. We can use tf.equal to check
+    if our prediction matches the truth.
+    """
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y_, 1))
+
+    """
+    That gives us a list of booleans. To determine what fraction are correct, we cast to floating point numbers and then
+    take the mean. For example, [True, False, True, True] would become [1,0,1,1] which would become 0.75.
+    """
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    """
+    Finally, we ask for our accuracy on our test data.
+    """
     print(sess.run(accuracy, feed_dict={x: mnist.test.images,
                                         y_: mnist.test.labels}))
 

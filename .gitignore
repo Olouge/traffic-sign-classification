@@ -13,3 +13,5 @@ traffic-sign-data
 notMNIST_train.zip
 notMNIST_test.zip
 notMNIST.pickle
+
+trafficSignClassifier.pickle
