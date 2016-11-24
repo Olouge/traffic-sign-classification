@@ -6,7 +6,7 @@ import tensorflow as tf
 from sklearn.preprocessing import LabelBinarizer
 from tqdm import tqdm
 
-from pipelines.german_traffic_signs import GermanTrafficSignDataset
+from pipelines.german_traffic_sign_dataset import GermanTrafficSignDataset
 
 """
 Helper-function for flattening a layer
