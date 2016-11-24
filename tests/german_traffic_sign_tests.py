@@ -1,5 +1,4 @@
-from german_traffic_signs import GermanTrafficSignDataset
-from german_traffic_signs import TrainedDataMarshaler
+from submissions.german_traffic_signs import GermanTrafficSignDataset
 
 data = GermanTrafficSignDataset()
 print(data)

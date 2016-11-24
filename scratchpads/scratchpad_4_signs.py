@@ -1,25 +1,12 @@
-import hashlib
-import os
-import pickle
-from urllib.request import urlretrieve
-
-import numpy as np
-from PIL import Image
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.utils import resample
-from tqdm import tqdm
-from zipfile import ZipFile
 import math
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from sklearn.preprocessing import LabelBinarizer
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import matplotlib.gridspec as gridspec
-import cv2
-from german_traffic_signs import GermanTrafficSignDataset
+
+from submissions.german_traffic_signs import GermanTrafficSignDataset
 
 """
 Helper-function for flattening a layer

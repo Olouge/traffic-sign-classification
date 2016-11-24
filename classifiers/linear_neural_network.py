@@ -1,5 +1,3 @@
-from german_traffic_signs import GermanTrafficSignDataset
-
 class LinearNeuralNetworkClassifier:
     def __init__(self, data):
         self.data = data
