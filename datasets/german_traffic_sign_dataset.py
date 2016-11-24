@@ -5,6 +5,8 @@ import cv2
 import os
 import csv
 
+from sklearn.preprocessing import LabelBinarizer
+
 
 class GermanTrafficSignDataset:
     """
@@ -16,7 +18,8 @@ class GermanTrafficSignDataset:
        4. Passing an instance of this class to print() prints some hueristics about the dataset.
     """
 
-    def __init__(self, train_validate_split_percentage=0.05):
+    def __init__(self, one_hot=True, train_validate_split_percentage=0.05):
+        self.__one_hot_encoded = one_hot
         self.split_size = train_validate_split_percentage
 
         self.train_orig, self.validate_orig, self.test_orig = None, None, None
@@ -50,7 +53,8 @@ class GermanTrafficSignDataset:
                 self.__load_data,
                 self.__split_train_and_validation,
                 self.__compute_metrics,
-                self.__prepare_images
+                self.__prepare_images,
+                self.__one_hot_encode_labels
             ]]
             self.__configured = True
 
@@ -109,7 +113,10 @@ class GermanTrafficSignDataset:
 
                     'train_labels': self.train_labels,
                     'validate_labels': self.validate_labels,
-                    'test_labels': self.test_labels
+                    'test_labels': self.test_labels,
+
+                    'one_hot': self.__one_hot_encoded,
+                    'split_size': self.split_size
                 }
             )
 
@@ -263,6 +270,24 @@ class GermanTrafficSignDataset:
             'used for network training while orig and gray are meant for visulizations.'
         )
 
+    def __one_hot_encode_labels(self):
+        if self.__one_hot_encoded:
+            # [Adapted from Lesson 7 - MiniFlow]
+            # Turn labels into numbers and apply One-Hot Encoding
+            encoder = LabelBinarizer()
+            encoder.fit(self.train_labels)
+
+            self.train_labels = encoder.transform(self.train_labels)
+            self.validate_labels = encoder.transform(self.validate_labels)
+            self.test_labels = encoder.transform(self.test_labels)
+
+            # Change to float32, so it can be multiplied against the features in TensorFlow, which are float32
+            self.train_labels = self.train_labels.astype(np.float32)
+            self.validate_labels = self.validate_labels.astype(np.float32)
+            self.test_labels = self.test_labels.astype(np.float32)
+
+            print('train, validate and test labels have been one-hot encoded using LabelBinarizer.')
+
     def __color2gray(self, image):
         # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray = 0.2989 * image[:, :, 0] + 0.5870 * image[:, :, 1] + 0.1140 * image[:, :, 2]
@@ -284,6 +309,9 @@ class GermanTrafficSignDataset:
 
     def __str__(self):
         result = []
+        result.append(' ')
+        result.append('One-Hot Encoded:             {}'.format(self.__one_hot_encoded))
+        result.append('Train/Validation Split %:    {}'.format(self.split_size))
         result.append(' ')
         result.append('Training size:               {}'.format(self.num_training))
         result.append('Validation size:             {}'.format(self.num_validation))
