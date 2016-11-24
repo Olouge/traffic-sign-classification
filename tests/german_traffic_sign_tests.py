@@ -1,11 +1,11 @@
-from submissions.german_traffic_signs import GermanTrafficSignDataset
+from pipelines.german_traffic_signs import GermanTrafficSignDataset
 
 data = GermanTrafficSignDataset()
 print(data)
 
 
 def test_persist(data):
-    data.persist()
+    data.persist(overwrite=True)
 
 def test_restore(data):
     data.restore()

@@ -64,8 +64,8 @@ class GermanTrafficSignDataset:
         Loads in train and test pickle files
         """
 
-        training_file = os.path.join(os.path.dirname(__file__), 'traffic-sign-data/train.p')
-        testing_file = os.path.join(os.path.dirname(__file__), 'traffic-sign-data/test.p')
+        training_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'train.p')
+        testing_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'test.p')
 
         with open(training_file, mode='rb') as f:
             train = pickle.load(f)
@@ -242,7 +242,7 @@ class TrainedDataMarshaler:
             pickle_file='trafficsigns_trained.pickle',
             overwrite=False
     ):
-        pickle_file = os.path.join(os.path.dirname(__file__), 'data', pickle_file)
+        pickle_file = os.path.join(os.path.dirname(__file__), '..', 'data', pickle_file)
         os.makedirs(os.path.dirname(pickle_file), exist_ok=True)
         if overwrite or not os.path.isfile(pickle_file):
             print('Saving data to pickle file...')
@@ -268,7 +268,7 @@ class TrainedDataMarshaler:
 
     @staticmethod
     def reload_data(pickle_file='trafficsigns_trained.pickle'):
-        pickle_file = os.path.join(os.path.dirname(__file__), 'data', pickle_file)
+        pickle_file = os.path.join(os.path.dirname(__file__), '..', 'data', pickle_file)
         os.makedirs(os.path.dirname(pickle_file), exist_ok=True)
         # Reload the data
         with open(pickle_file, 'rb') as f:
