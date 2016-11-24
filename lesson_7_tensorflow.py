@@ -70,12 +70,12 @@ def uncompress_features_labels(file):
 
 
 # Get the features and labels from the zip files
-train_features, train_labels = uncompress_features_labels('notMNIST_train.zip')
+X_train, train_labels = uncompress_features_labels('notMNIST_train.zip')
 test_features, test_labels = uncompress_features_labels('notMNIST_test.zip')
 
 # Limit the amount of data to work with a docker container
 docker_size_limit = 150000
-train_features, train_labels = resample(train_features, train_labels, n_samples=docker_size_limit)
+X_train, train_labels = resample(X_train, train_labels, n_samples=docker_size_limit)
 
 # Set flags for feature engineering.  This will prevent you from skipping an important step.
 is_features_normal = False
@@ -114,7 +114,7 @@ np.testing.assert_array_almost_equal(
     [0.1, 0.103137254902, 0.13137254902, 0.162745098039, 0.194117647059, 0.225490196078, 0.830980392157, 0.865490196078,
      0.896862745098, 0.9])
 
-train_features = normalize_greyscale(train_features)
+X_train = normalize_greyscale(X_train)
 test_features = normalize_greyscale(test_features)
 is_features_normal = True
 
@@ -141,8 +141,8 @@ assert is_features_normal, 'You skipped the step to normalize the features'
 assert is_labels_encod, 'You skipped the step to One-Hot Encode the labels'
 
 # Get randomized datasets for training and validation
-train_features, valid_features, train_labels, valid_labels = train_test_split(
-    train_features,
+X_train, valid_features, train_labels, valid_labels = train_test_split(
+    X_train,
     train_labels,
     test_size=0.05,
     random_state=832289)
@@ -160,7 +160,7 @@ if not os.path.isfile(pickle_file):
         with open('notMNIST.pickle', 'wb') as pfile:
             pickle.dump(
                 {
-                    'train_dataset': train_features,
+                    'train_dataset': X_train,
                     'train_labels': train_labels,
                     'valid_dataset': valid_features,
                     'valid_labels': valid_labels,
@@ -189,7 +189,7 @@ import matplotlib.pyplot as plt
 pickle_file = 'notMNIST.pickle'
 with open(pickle_file, 'rb') as f:
   pickle_data = pickle.load(f)
-  train_features = pickle_data['train_dataset']
+  X_train = pickle_data['train_dataset']
   train_labels = pickle_data['train_labels']
   valid_features = pickle_data['valid_dataset']
   valid_labels = pickle_data['valid_labels']
@@ -236,7 +236,7 @@ assert features._dtype == tf.float32, 'features must be type float32'
 assert labels._dtype == tf.float32, 'labels must be type float32'
 
 # Feed dicts for training, validation, and test session
-train_feed_dict = {features: train_features, labels: train_labels}
+train_feed_dict = {features: X_train, labels: train_labels}
 valid_feed_dict = {features: valid_features, labels: valid_labels}
 test_feed_dict = {features: test_features, labels: test_labels}
 
@@ -299,7 +299,7 @@ valid_acc_batch = []
 
 with tf.Session() as session:
     session.run(init)
-    batch_count = int(math.ceil(len(train_features)/batch_size))
+    batch_count = int(math.ceil(len(X_train) / batch_size))
 
     for epoch_i in range(epochs):
 
@@ -310,7 +310,7 @@ with tf.Session() as session:
         for batch_i in batches_pbar:
             # Get a batch of training features and labels
             batch_start = batch_i*batch_size
-            batch_features = train_features[batch_start:batch_start + batch_size]
+            batch_features = X_train[batch_start:batch_start + batch_size]
             batch_labels = train_labels[batch_start:batch_start + batch_size]
 
             # Run optimizer and get loss
@@ -371,7 +371,7 @@ test_accuracy = 0.0
 
 with tf.Session() as session:
     session.run(init)
-    batch_count = int(math.ceil(len(train_features) / batch_size))
+    batch_count = int(math.ceil(len(X_train) / batch_size))
 
     for epoch_i in range(epochs):
 
@@ -382,7 +382,7 @@ with tf.Session() as session:
         for batch_i in batches_pbar:
             # Get a batch of training features and labels
             batch_start = batch_i * batch_size
-            batch_features = train_features[batch_start:batch_start + batch_size]
+            batch_features = X_train[batch_start:batch_start + batch_size]
             batch_labels = train_labels[batch_start:batch_start + batch_size]
 
             # Run optimizer
