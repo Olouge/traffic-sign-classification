@@ -126,10 +126,8 @@ class GermanTrafficSignDataset:
                 overwrite=overwrite
             )
 
-    def __restore(self, pickle_file='trafficsigns_trained.pickle'):
+    def from_data(self, data):
         if not self.__configured:
-            data = TrainedDataSerializer.reload_data(pickle_file=pickle_file)
-
             self.__one_hot_encoded = data['one_hot']
             self.split_size = data['split_size']
             self.sign_names_map = data['sign_names_map']
@@ -142,6 +140,13 @@ class GermanTrafficSignDataset:
                 'test_flat']
             self.train_labels, self.validate_labels, self.test_labels = data['train_labels'], data['validate_labels'], \
                                                                         data['test_labels']
+
+    def __restore(self, pickle_file='trafficsigns_trained.pickle'):
+        if not self.__configured:
+            data = TrainedDataSerializer.reload_data(pickle_file=pickle_file)
+
+            self.from_data(data)
+
             del data
             print('train features shape: ', self.train_orig.shape)
 
