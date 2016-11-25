@@ -97,6 +97,8 @@ class GermanTrafficSignDataset:
 
     def serialize(self, data={}):
         return {**data, **{
+            'sign_names_map': self.sign_names_map,
+
             'train_orig': self.train_orig,
             'validate_orig': self.validate_orig,
             'test_orig': self.test_orig,
@@ -128,6 +130,11 @@ class GermanTrafficSignDataset:
     def __restore(self, pickle_file='trafficsigns_trained.pickle'):
         if not self.__configured:
             data = TrainedDataSerializer.reload_data(pickle_file=pickle_file)
+
+            self.__one_hot_encoded = data['one_hot']
+            self.split_size = data['split_size']
+            self.sign_names_map = data['sign_names_map']
+
             self.train_orig, self.validate_orig, self.test_orig = data['train_orig'], data['validate_orig'], data[
                 'test_orig']
             self.train_gray, self.validate_gray, self.test_gray = data['train_gray'], data['validate_gray'], data[

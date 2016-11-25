@@ -1,10 +1,7 @@
 from datasets.german_traffic_signs import GermanTrafficSignDataset
 
-def test_configure(data):
-    data.configure()
-
-def test_resume(data):
-    data.restore()
+def test_configure(data, one_hot=True, train_validate_split_percentage=0.05):
+    data.configure(one_hot=one_hot, train_validate_split_percentage=train_validate_split_percentage)
 
 def test_print(data):
     print(data)
@@ -12,7 +9,7 @@ def test_print(data):
     print(data.train_labels[0:1])
 
 def test_persist(data):
-    data.persist(overwrite=True)
+    data.persist(data.serialize(), overwrite=True)
 
 def test_restore(data):
     data.restore()
@@ -21,9 +18,9 @@ def test_restore(data):
 print('[TEST] Configure from source file (non-encoded labels)')
 print('')
 
-data = GermanTrafficSignDataset(one_hot=False)
+data = GermanTrafficSignDataset()
 
-test_configure(data)
+test_configure(data, one_hot=False)
 test_print(data)
 test_persist(data)
 
@@ -37,7 +34,7 @@ print('')
 
 data = GermanTrafficSignDataset()
 
-test_configure(data)
+test_configure(data, one_hot=True)
 test_print(data)
 test_persist(data)
 
@@ -56,5 +53,5 @@ print('')
 
 data = GermanTrafficSignDataset()
 
-test_resume(data)
+test_restore(data)
 test_print(data)
