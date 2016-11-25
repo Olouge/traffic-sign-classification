@@ -8,9 +8,6 @@ from datasets.german_traffic_signs import ImagePlotter, ImageTransformer
 
 class SimpleNeuralNetwork(BaseNeuralNetwork):
     def fit(self):
-        # print(self)
-        # print('')
-
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
 
@@ -37,22 +34,20 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
         }
 
         # tf Graph input
-        x = tf.placeholder("float", [None, image_size])
-        y = tf.placeholder("float", [None, num_classes])
+        features = tf.placeholder("float", [None, image_size])
+        labels = tf.placeholder("float", [None, num_classes])
 
-        # self.x_flat = tf.reshape(x, [-1, image_size])
+        # self.x_flat = tf.reshape(features, [-1, image_size])
 
         # Hidden layer with RELU activation
-        layer_1 = tf.add(tf.matmul(x, weights['hidden_layer']), biases['hidden_layer'])
+        layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
         layer_1 = tf.nn.relu(layer_1)
 
         # Output layer with linear activation
         logits = tf.matmul(layer_1, weights['out']) + biases['out']
 
         # Define loss and optimizer
-        # cost also called cross_entropy
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, y))
-        # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 
         init = tf.initialize_all_variables()
@@ -68,31 +63,34 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
                     # ImagePlotter.plot_images(ImageTransformer.jitter_images(data.train_orig[batch_start:batch_end]), batch_y)
                     # ImagePlotter.plot_images(data.train_orig[batch_start:batch_end], np.argmax(batch_y, axis=1))
                     # Run optimization op (backprop) and cost op (to get loss value)
-                    sess.run(optimizer, feed_dict={x: batch_x, y: batch_y})
+                    sess.run(optimizer, feed_dict={features: batch_x, labels: batch_y})
+
                 # Display logs per epoch step
                 if epoch % display_step == 0:
-                    cross_entropy = sess.run(cost, feed_dict={x: batch_x, y: batch_y})
-                    print("Epoch:", '%04d' % (epoch + 1), '/', '%04d' % training_epochs, "cost=",
-                          "{:.9f}".format(cross_entropy))
+                    c = sess.run(cost, feed_dict={features: batch_x, labels: batch_y})
+                    print("Epoch:", '%04d' % (epoch + 1), 'of', '%04d' % training_epochs)
 
                     # Calculate accuracy
-                    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+                    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
                     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-                    print("  learning rate:     ", sess.run(learning_rate))
-                    print("  batch size:        ", batch_size)
-                    print("  train accuracy:    ", accuracy.eval({x: batch_x, y: batch_y}))
+                    print("  cost:              ", "{:.9f}".format(c))
+                    print("  train accuracy:    ", accuracy.eval({features: data.train_flat, labels: data.train_labels}))
                     print("  validate accuracy: ",
                           accuracy.eval(
-                              {x: data.validate_flat, y: data.validate_labels}))
+                              {features: data.validate_flat, labels: data.validate_labels}))
                     print("  test accuracy:     ",
                           accuracy.eval(
-                              {x: data.test_flat, y: data.test_labels}))
+                              {features: data.test_flat, labels: data.test_labels}))
+
+                    print("  batch size:        ", batch_size)
+                    print("  learning rate:     ", sess.run(learning_rate))
                     print('')
 
             # store the final results for later analysis
             self.config.hyper_parameters.learning_rate = sess.run(learning_rate)
-            self.cross_entropy = cross_entropy
+
+            self.cost = sess.run(cost, feed_dict={features: data.train_flat, labels: data.train_labels})
             self.weights = {
                 'hidden_layer': weights['hidden_layer'].eval(),
                 'out': weights['out'].eval()
@@ -103,22 +101,23 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
             }
 
             # Calculate accuracy
-            correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+            correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
             # store predictions
             self.train_predictions = tf.cast(
-                correct_prediction.eval({x: data.train_flat, y: data.train_labels}), "float").eval()
-            self.test_predictions = tf.cast(correct_prediction.eval({x: data.test_flat, y: data.test_labels}),
+                correct_prediction.eval({features: data.train_flat, labels: data.train_labels}), "float").eval()
+            self.test_predictions = tf.cast(correct_prediction.eval({features: data.test_flat, labels: data.test_labels}),
                                             "float").eval()
             self.validate_predictions = tf.cast(
-                correct_prediction.eval({x: data.validate_flat, y: data.validate_labels}), "float").eval()
+                correct_prediction.eval({features: data.validate_flat, labels: data.validate_labels}), "float").eval()
 
             # store accuracies
-            self.train_accuracy = accuracy.eval({x: data.train_flat, y: data.train_labels})
-            self.validate_accuracy = accuracy.eval({x: data.validate_flat, y: data.validate_labels})
-            self.test_accuracy = accuracy.eval({x: data.test_flat, y: data.test_labels})
+            self.train_accuracy = accuracy.eval({features: data.train_flat, labels: data.train_labels})
+            self.validate_accuracy = accuracy.eval({features: data.validate_flat, labels: data.validate_labels})
+            self.test_accuracy = accuracy.eval({features: data.test_flat, labels: data.test_labels})
 
+            print("cost:                ", self.cost)
             print("train accuracy:      ", self.train_accuracy)
             print("validate accuracy:   ", self.validate_accuracy)
             print("test accuracy:       ", self.test_accuracy)

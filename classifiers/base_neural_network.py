@@ -45,7 +45,7 @@ class BaseNeuralNetwork:
     def __init__(self):
         self.config = None
 
-        self.cross_entropy = None
+        self.cost = None
         self.weights = None
         self.biases = None
 
@@ -118,7 +118,7 @@ class BaseNeuralNetwork:
         return {
             **data,
             **{
-                'cross_entropy': self.cross_entropy,
+                'cost': self.cost,
                 'weights': self.weights,
                 'biases': self.biases,
                 'config': {
@@ -141,7 +141,11 @@ class BaseNeuralNetwork:
     def __persist(self):
         TrainedDataSerializer.save_data(
             data=self.serialize(),
-            pickle_file='SimpleNeuralNetworkClassifier_{}S_{}LR_{}E_{}B.pickle'.format(
+            pickle_file='{}_trained_{}TA_{}VA_{}TestA_{}S_{}LR_{}E_{}B.pickle'.format(
+                self.__class__.__name__,
+                "{:.004f}".format(self.train_accuracy),
+                "{:.004f}".format(self.validate_accuracy),
+                "{:.004f}".format(self.test_accuracy),
                 int(self.config.data.split_size * 100),
                 int(
                     self.config.hyper_parameters.learning_rate * 100),
