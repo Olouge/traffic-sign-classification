@@ -15,7 +15,13 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
         num_classes = data.num_classes
         num_training = data.num_training
 
-        learning_rate = tf.constant(hyper_parameters.learning_rate)
+        # learning_rate = tf.constant(hyper_parameters.learning_rate)
+
+        # Passing global_step to minimize() will increment it at each step.
+        global_step = tf.Variable(0, trainable=False)
+        initial_learning_rate = hyper_parameters.learning_rate
+        learning_rate = tf.train.exponential_decay(initial_learning_rate, global_step, 20000, 0.96, staircase=True)
+
         training_epochs = hyper_parameters.epochs
         batch_size = hyper_parameters.batch_size
         batch_count = int(math.ceil(num_training / batch_size))
@@ -48,7 +54,7 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
 
         # Define loss and optimizer
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost, global_step=global_step)
 
         init = tf.initialize_all_variables()
 

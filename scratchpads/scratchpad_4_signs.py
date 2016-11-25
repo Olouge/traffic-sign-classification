@@ -365,11 +365,11 @@ b_mode = 1
 
 if a_mode == 1:
     # Parameters
-    global_step = tf.Variable(0, trainable=False)
     # learning_rate = tf.constant(0.2)
+    # Passing global_step to minimize() will increment it at each step.
+    global_step = tf.Variable(0, trainable=False)
     initial_learning_rate = 0.25
     learning_rate = tf.train.exponential_decay(initial_learning_rate, global_step, 50000, 0.96, staircase=True)
-    # Passing global_step to minimize() will increment it at each step.
 
     training_epochs = 100
     batch_size = 32
