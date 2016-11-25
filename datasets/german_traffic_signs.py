@@ -31,8 +31,6 @@ class GermanTrafficSignDataset:
 
         self.num_training, self.num_validation, self.num_testing, self.num_classes = None, None, None, None
 
-        self.sign_names_map = self.__load_sign_names_map()
-
         # batch training metrics
         self._epochs_completed = 0
         self._index_in_epoch = 0
@@ -50,6 +48,7 @@ class GermanTrafficSignDataset:
         if not self.__configured:
             self.__one_hot_encoded = one_hot
             self.split_size = train_validate_split_percentage
+            self.sign_names_map = self.__load_sign_names_map()
 
             [f() for f in [
                 self.__load_data,
