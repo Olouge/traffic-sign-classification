@@ -91,33 +91,36 @@ class GermanTrafficSignDataset:
             self._index_in_epoch = batch_size
             assert batch_size <= self.num_training
         end = self._index_in_epoch
-        return self.train_flat[start:end], self.train_labels[start:end]
+        return self.train_flat[start:end], self.train_labels[start:end], start, end
 
-    def persist(self, pickle_file='trafficsigns_trained.pickle', overwrite=False):
+    def serialize(self, data={}):
+        return {**data, **{
+            'train_orig': self.train_orig,
+            'validate_orig': self.validate_orig,
+            'test_orig': self.test_orig,
+
+            'train_gray': self.train_gray,
+            'validate_gray': self.validate_gray,
+            'test_gray': self.test_gray,
+
+            'train_flat': self.train_flat,
+            'validate_flat': self.validate_flat,
+            'test_flat': self.test_flat,
+
+            'train_labels': self.train_labels,
+            'validate_labels': self.validate_labels,
+            'test_labels': self.test_labels,
+
+            'one_hot': self.__one_hot_encoded,
+            'split_size': self.split_size
+        }}
+
+    def persist(self, data, pickle_file='trafficsigns_trained.pickle', overwrite=False):
         if self.__configured:
             TrainedDataMarshaler.save_data(
                 pickle_file=pickle_file,
                 overwrite=overwrite,
-                dictionary={
-                    'train_orig': self.train_orig,
-                    'validate_orig': self.validate_orig,
-                    'test_orig': self.test_orig,
-
-                    'train_gray': self.train_gray,
-                    'validate_gray': self.validate_gray,
-                    'test_gray': self.test_gray,
-
-                    'train_flat': self.train_flat,
-                    'validate_flat': self.validate_flat,
-                    'test_flat': self.test_flat,
-
-                    'train_labels': self.train_labels,
-                    'validate_labels': self.validate_labels,
-                    'test_labels': self.test_labels,
-
-                    'one_hot': self.__one_hot_encoded,
-                    'split_size': self.split_size
-                }
+                dictionary=data
             )
 
     def __restore(self, pickle_file='trafficsigns_trained.pickle'):
@@ -136,14 +139,14 @@ class GermanTrafficSignDataset:
 
     def plot_images(self):
         if self.__configured:
-            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.train_orig[:20]))
-            ImagePlotter.plot_images(self.train_gray[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.train_orig[:20]), self.train_labels[:20])
+            ImagePlotter.plot_images(self.train_gray[:20], self.train_labels[:20], cmap='gray')
 
-            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.test_orig[:20]))
-            ImagePlotter.plot_images(self.test_gray[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.test_orig[:20]), self.test_labels[:20])
+            ImagePlotter.plot_images(self.test_gray[:20], self.test_labels[:20], cmap='gray')
 
-            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.validate_orig[:20]))
-            ImagePlotter.plot_images(self.validate_gray[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageTransformer.jitter_images(self.validate_orig[:20]), self.validate_labels[:20])
+            ImagePlotter.plot_images(self.validate_gray[:20], self.validate_labels[:20], cmap='gray')
 
     # private
 
@@ -276,9 +279,14 @@ class GermanTrafficSignDataset:
             # Turn labels into numbers and apply One-Hot Encoding
             encoder = LabelBinarizer()
             encoder.fit(self.train_labels)
-
             self.train_labels = encoder.transform(self.train_labels)
+
+            # encoder = LabelBinarizer()
+            # encoder.fit(self.validate_labels)
             self.validate_labels = encoder.transform(self.validate_labels)
+
+            # encoder = LabelBinarizer()
+            # encoder.fit(self.test_labels)
             self.test_labels = encoder.transform(self.test_labels)
 
             # Change to float32, so it can be multiplied against the features in TensorFlow, which are float32
@@ -395,19 +403,58 @@ class ImagePlotter:
         plt.show()
 
     @staticmethod
-    def plot_images(images, cmap=None):
-        gs1 = gridspec.GridSpec(10, 10)
-        gs1.update(wspace=0.01, hspace=0.02)  # set the spacing between axes.
+    def plot_images1(images, labels, cmap=None):
+        gs = gridspec.GridSpec(10, 10)
+        gs.update(wspace=0.01, hspace=0.02)  # set the spacing between axes.
+
         plt.figure(figsize=(12, 12))
+
         for i in range(len(images)):
-            ax1 = plt.subplot(gs1[i])
-            ax1.set_xticklabels([])
-            ax1.set_yticklabels([])
-            ax1.set_aspect('equal')
+            ax = plt.subplot(gs[i])
+
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+
+            ax.set_aspect('equal')
+            xlabel = "T: {0}, P: {1}".format(labels[i], None)
+            ax.set_xlabel(xlabel)
+
+            # Remove ticks from the plot.
+            ax.set_xticks([])
+            ax.set_yticks([])
 
             plt.subplot(10, 10, i + 1)
-            plt.imshow(images[i], cmap=cmap, interpolation='bicubic')
-            plt.axis('off')
+            ax.imshow(images[i], cmap=cmap, interpolation='bicubic')
+            # plt.axis('off')
+
+        plt.show()
+
+
+    def plot_images(images, labels, cls_pred=None, cmap=None):
+        fig, axes = plt.subplots(4, 5)
+        fig.subplots_adjust(hspace=0.5, wspace=0.3)
+
+        for i, ax in enumerate(axes.flat):
+            if i >= len(images):
+                break
+            # Plot image.
+            ax.imshow(images[i], cmap=cmap)
+
+            # Show true and predicted classes.
+            if cls_pred is None:
+                xlabel = "True: {0}".format(labels[i])
+            else:
+                xlabel = "T: {0}, P: {1}".format(labels[i], cls_pred[i])
+
+            # Show the classes as the label on the x-axis.
+            ax.set_xlabel(xlabel)
+
+            # Remove ticks from the plot.
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+        # Ensure the plot is shown correctly with multiple plots
+        # in a single Notebook cell.
         plt.show()
 
 

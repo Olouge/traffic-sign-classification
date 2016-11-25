@@ -35,7 +35,7 @@ print('')
 print('[TEST] Configure from source file with one-hot encoded labels')
 print('')
 
-data = GermanTrafficSignDataset(one_hot=True)
+data = GermanTrafficSignDataset()
 
 test_configure(data)
 test_print(data)
