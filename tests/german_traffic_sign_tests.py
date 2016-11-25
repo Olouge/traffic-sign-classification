@@ -1,4 +1,4 @@
-from datasets.german_traffic_sign_dataset import GermanTrafficSignDataset
+from datasets.german_traffic_signs import GermanTrafficSignDataset
 
 def test_configure(data):
     data.configure()

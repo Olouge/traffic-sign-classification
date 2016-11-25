@@ -1,13 +1,17 @@
-from classifiers.base_neural_network import HyperParametersContext
+from classifiers.base_neural_network import HyperParametersContext, ConfigurationContext
 from classifiers.simple_neural_network import SimpleNeuralNetwork
-from datasets.german_traffic_sign_dataset import GermanTrafficSignDataset
+from datasets.german_traffic_signs import GermanTrafficSignDataset
 
-# [TEST] Vanilla hyperparameters
+# Create fresh German Traffic Sign dataset
 data = GermanTrafficSignDataset()
-data.configure()
+data.configure(one_hot=True, train_validate_split_percentage=0.15)
 
-hyper_parameters = HyperParametersContext(learning_rate=0.2,epochs=50, batch_size=20)
-simple_nn = SimpleNeuralNetwork(data, hyper_parameters)
+# [TEST] Simple Neural Network
+hyper_parameters = HyperParametersContext(learning_rate=0.25, epochs=1, batch_size=32)
+config = ConfigurationContext(data, hyper_parameters)
+
+simple_nn = SimpleNeuralNetwork()
+simple_nn.configure(config)
 simple_nn.generate()
-print(simple_nn)
 
+print(simple_nn)

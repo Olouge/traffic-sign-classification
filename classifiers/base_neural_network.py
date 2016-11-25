@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+from serializers.trained_data_serializer import TrainedDataSerializer
+
 
 class HyperParametersContext:
     def __init__(
@@ -24,23 +26,43 @@ class HyperParametersContext:
         return '\n'.join(result)
 
 
-class BaseNeuralNetwork:
-    def __init__(self, german_traffic_sign_dataset, hyper_parameters=None):
+class ConfigurationContext:
+    def __init__(self, dataset, hyper_parameters=None):
         """
-        :param german_traffic_sign_dataset: An instance of datasets.GermanTrafficSignDataset
+        :param dataset: An instance of datasets.GermanTrafficSignDataset
         :param hyper_parameters: An instance of HyperParametersContext
         """
-        self.data = german_traffic_sign_dataset
+        self.data = dataset
         if hyper_parameters is None:
             self.hyper_parameters = HyperParametersContext()
         else:
             self.hyper_parameters = hyper_parameters
 
+
+class BaseNeuralNetwork:
+    def __init__(self):
+        self.config = None
+
         self.cross_entropy = None
         self.weights = None
         self.biases = None
-        self.accuracy = None
-        self.correct_prediction = None
+
+        self.train_predictions = None
+        self.test_predictions = None
+        self.validate_predictions = None
+
+        self.train_accuracy = None
+        self.validate_accuracy = None
+        self.test_accuracy = None
+
+    def configure(self, configuration_context):
+        """
+        Principle entry point into all BaseNeuralNetworks.
+
+        :param configuration_context: An instance of ConfigurationContext
+        :return:
+        """
+        self.config = configuration_context
 
     def generate(self):
         """
@@ -58,7 +80,7 @@ class BaseNeuralNetwork:
         """
         [f() for f in [
             self.fit,
-            self.__serialize,
+            self.serialize,
             self.__persist
         ]]
 
@@ -68,25 +90,39 @@ class BaseNeuralNetwork:
     def fit(self):
         raise NotImplementedError
 
-    def __serialize(self, data={}):
-        return self.data.__serialize(
-            {
-                **data,
-                **{
-                    'learning_rate': self.hyper_parameters.learning_rate,
-                    'epochs': self.hyper_parameters.epochs,
-                    'batch_size': self.hyper_parameters.batch_size
+    def serialize(self, data={}):
+        return {
+            **data,
+            **{
+                'cross_entropy': self.cross_entropy,
+                'weights': self.weights,
+                'biases': self.biases,
+                'config': {
+                    'hyper_parameters': self.config.hyper_parameters.__dict__,
+                    'data': self.config.data.serialize()
+                },
+                'predictions': {
+                    'train': self.train_predictions,
+                    'validate': self.validate_predictions,
+                    'test': self.test_predictions
+                },
+                'accuracy': {
+                    'train': self.train_accuracy,
+                    'validate': self.validate_accuracy,
+                    'test': self.test_accuracy
                 }
             }
-        )
+        }
 
     def __persist(self):
-        self.data.persist(
-            data=self.__serialize(),
-            pickle_name='SimpleNeuralNetworkClassifier_{}_{}_{}_{}.pickle'.format(self.data.split_size,
-                                                                                  self.hyper_parameters.learning_rate,
-                                                                                  self.hyper_parameters.epochs,
-                                                                                  self.hyper_parameters.batch_size),
+        TrainedDataSerializer.save_data(
+            data=self.serialize(),
+            pickle_file='SimpleNeuralNetworkClassifier_{}S_{}LR_{}E_{}B.pickle'.format(
+                int(self.config.data.split_size * 100),
+                int(
+                    self.config.hyper_parameters.learning_rate * 100),
+                self.config.hyper_parameters.epochs,
+                self.config.hyper_parameters.batch_size),
             overwrite=True
         )
 

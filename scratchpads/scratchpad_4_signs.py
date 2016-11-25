@@ -429,7 +429,7 @@ if a_mode == 1:
             sess.run(init)
             # Training cycle
             for epoch in range(training_epochs):
-                total_batch = int(n_train / batch_size)
+                total_batch = int(math.ceil(n_train/batch_size)) # int(n_train / batch_size)
                 # Loop over all batches
                 for i in range(total_batch):
                     batch_x, batch_y = next_batch(batch_size)

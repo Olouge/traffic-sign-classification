@@ -7,6 +7,8 @@ import csv
 
 from sklearn.preprocessing import LabelBinarizer
 
+from serializers.trained_data_serializer import TrainedDataSerializer
+
 
 class GermanTrafficSignDataset:
     """
@@ -18,10 +20,7 @@ class GermanTrafficSignDataset:
        4. Passing an instance of this class to print() prints some hueristics about the dataset.
     """
 
-    def __init__(self, one_hot=True, train_validate_split_percentage=0.05):
-        self.__one_hot_encoded = one_hot
-        self.split_size = train_validate_split_percentage
-
+    def __init__(self):
         self.train_orig, self.validate_orig, self.test_orig = None, None, None
         self.train_gray, self.validate_gray, self.test_gray = None, None, None
         self.train_flat, self.validate_flat, self.test_flat = None, None, None
@@ -40,7 +39,7 @@ class GermanTrafficSignDataset:
 
         self.__configured = False
 
-    def configure(self):
+    def configure(self, one_hot=True, train_validate_split_percentage=0.05):
         """
         Pipeline import sequence
 
@@ -49,6 +48,9 @@ class GermanTrafficSignDataset:
           3.
         """
         if not self.__configured:
+            self.__one_hot_encoded = one_hot
+            self.split_size = train_validate_split_percentage
+
             [f() for f in [
                 self.__load_data,
                 self.__split_train_and_validation,
@@ -117,15 +119,15 @@ class GermanTrafficSignDataset:
 
     def persist(self, data, pickle_file='trafficsigns_trained.pickle', overwrite=False):
         if self.__configured:
-            TrainedDataMarshaler.save_data(
+            TrainedDataSerializer.save_data(
+                data=data,
                 pickle_file=pickle_file,
-                overwrite=overwrite,
-                dictionary=data
+                overwrite=overwrite
             )
 
     def __restore(self, pickle_file='trafficsigns_trained.pickle'):
         if not self.__configured:
-            data = TrainedDataMarshaler.reload_data(pickle_file=pickle_file)
+            data = TrainedDataSerializer.reload_data(pickle_file=pickle_file)
             self.train_orig, self.validate_orig, self.test_orig = data['train_orig'], data['validate_orig'], data[
                 'test_orig']
             self.train_gray, self.validate_gray, self.test_gray = data['train_gray'], data['validate_gray'], data[
@@ -350,43 +352,6 @@ class GermanTrafficSignDataset:
         return '\n'.join(result)
 
 
-class TrainedDataMarshaler:
-    # Save the data for easy access
-    @staticmethod
-    def save_data(
-            dictionary,
-
-            pickle_file='trafficsigns_trained.pickle',
-            overwrite=False
-    ):
-        pickle_file = os.path.join(os.path.dirname(__file__), '..', 'data', pickle_file)
-        os.makedirs(os.path.dirname(pickle_file), exist_ok=True)
-        if overwrite or not os.path.isfile(pickle_file):
-            print('Saving data to pickle file...')
-            try:
-                with open(pickle_file, 'wb') as pfile:
-                    pickle.dump(
-                        dictionary,
-                        pfile, pickle.HIGHEST_PROTOCOL)
-            except Exception as e:
-                print('Unable to save data to', pickle_file, ':', e)
-                raise
-        else:
-            print('WARNING: {} already exists.'.format(pickle_file))
-
-        print('Data cached in pickle file.')
-
-    @staticmethod
-    def reload_data(pickle_file='trafficsigns_trained.pickle'):
-        pickle_file = os.path.join(os.path.dirname(__file__), '..', 'data', pickle_file)
-        os.makedirs(os.path.dirname(pickle_file), exist_ok=True)
-        # Reload the data
-        with open(pickle_file, 'rb') as f:
-            pickle_data = pickle.load(f)
-        print('Data and modules loaded from pickle file.')
-        return pickle_data
-
-
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
@@ -428,7 +393,6 @@ class ImagePlotter:
             # plt.axis('off')
 
         plt.show()
-
 
     def plot_images(images, labels, cls_pred=None, cmap=None):
         fig, axes = plt.subplots(4, 5)
