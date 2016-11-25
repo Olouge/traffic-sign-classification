@@ -37,6 +37,16 @@ class GermanTrafficSignDataset:
 
         self.__configured = False
 
+    def one_hot_encoded(self):
+        return self.__one_hot_encoded
+
+    def label_sign_name(self, labels, idx):
+        if self.one_hot_encoded:
+            label = np.argmax(labels[idx])
+        else:
+            label = labels[idx]
+        return label, self.sign_names_map[label]
+
     def configure(self, one_hot=True, train_validate_split_percentage=0.05):
         """
         Pipeline import sequence
@@ -59,13 +69,24 @@ class GermanTrafficSignDataset:
             ]]
             self.__configured = True
 
+    def restore_from_data(self, data):
+        """
+        Pipeline import sequence
+
+          1. Assigns instance variables based on the attributes from that dictionary.
+        """
+        self.__from_data(data)
+        if not self.__configured:
+            [f() for f in [
+                self.__compute_metrics
+            ]]
+            self.__configured = True
+
     def restore(self, pickle_file='trafficsigns_trained.pickle'):
         """
         Pipeline import sequence
 
-          1. Loads the original data from the respective pickle files.
-          2. Splits the training set into a training and validation set.
-          3.
+        Loads the original data from the respective pickle files.
         """
         self.__restore(pickle_file)
         if not self.__configured:
@@ -126,7 +147,7 @@ class GermanTrafficSignDataset:
                 overwrite=overwrite
             )
 
-    def from_data(self, data):
+    def __from_data(self, data):
         if not self.__configured:
             self.__one_hot_encoded = data['one_hot']
             self.split_size = data['split_size']
@@ -145,7 +166,7 @@ class GermanTrafficSignDataset:
         if not self.__configured:
             data = TrainedDataSerializer.reload_data(pickle_file=pickle_file)
 
-            self.from_data(data)
+            self.__from_data(data)
 
             del data
             print('train features shape: ', self.train_orig.shape)

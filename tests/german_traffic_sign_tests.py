@@ -1,3 +1,5 @@
+import numpy as np
+
 from datasets.german_traffic_signs import GermanTrafficSignDataset
 
 def test_configure(data, one_hot=True, train_validate_split_percentage=0.05):
@@ -5,8 +7,11 @@ def test_configure(data, one_hot=True, train_validate_split_percentage=0.05):
 
 def test_print(data):
     print(data)
-    print('train_lables:')
-    print(data.train_labels[0:1])
+    idx = 0
+    for bin_name, bin_data in {'train': {'features': data.train_orig, 'labels': data.train_labels}, 'validate': {'features': data.validate_orig, 'labels': data.validate_labels}, 'test': {'features': data.test_orig, 'labels': data.test_labels}}.items():
+        # image = bin_data['features'][idx]
+        label, sign_name = data.label_sign_name(bin_data['labels'], idx)
+        print(bin_name, 'label', idx, ':', label, '-', data.sign_names_map[label])
 
 def test_persist(data):
     data.persist(data.serialize(), overwrite=True)
