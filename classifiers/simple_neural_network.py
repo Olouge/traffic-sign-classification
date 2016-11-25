@@ -8,8 +8,8 @@ from datasets.german_traffic_signs import ImagePlotter, ImageTransformer
 
 class SimpleNeuralNetwork(BaseNeuralNetwork):
     def fit(self):
-        print(self)
-        print('')
+        # print(self)
+        # print('')
 
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters

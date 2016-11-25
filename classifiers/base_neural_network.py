@@ -1,3 +1,5 @@
+import datetime
+
 import tensorflow as tf
 import numpy as np
 
@@ -78,11 +80,33 @@ class BaseNeuralNetwork:
 
         :return: None
         """
-        [f() for f in [
-            self.fit,
-            self.serialize,
-            self.__persist
+        [self.__with_time(op['label'], op['callback']) for op in [
+            {'label': 'FIT MODEL', 'callback': self.fit},
+            {'label': 'SERIALIZE TRAINED MODEL', 'callback': self.serialize},
+            {'label': 'PERSIST SERIALIZED TRAINED MODEL', 'callback': self.__persist}
         ]]
+
+    def __with_time(self, label, callback):
+        start = datetime.datetime.now()
+        print('')
+        print('')
+        print("===========> [{}] Started at {}".format(label, start.time()))
+        print('')
+        print('')
+
+        callback()
+
+        end = datetime.datetime.now()
+        print('')
+        print('')
+        print("===========> [{}] Finished at {}".format(label, end.time()))
+        print('')
+        print("===========> [{}] Wall time: {}".format(label, end - start))
+        print('')
+        print("└[∵┌]   └[ ∵ ]┘   [┐∵]┘   └[ ∵ ]┘   └[∵┌]   └[ ∵ ]┘   [┐∵]┘   └[ ∵ ]┘   └[∵┌]")
+        print('')
+        print('')
+        print('')
 
     def predict(self):
         raise NotImplementedError
