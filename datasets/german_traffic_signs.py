@@ -8,6 +8,7 @@ import csv
 from sklearn.preprocessing import LabelBinarizer
 
 from maths.transformations.image_jitterer import ImageJitterer
+from plot.image_plotter import ImagePlotter
 from serializers.trained_data_serializer import TrainedDataSerializer
 
 
@@ -38,23 +39,42 @@ class GermanTrafficSignDataset:
 
         self.__configured = False
 
-    def one_hot_encoded(self):
-        return self.__one_hot_encoded
-
-    def label_sign_name(self, labels, idx):
-        if self.one_hot_encoded:
-            label = np.argmax(labels[idx])
-        else:
-            label = labels[idx]
-        return label, self.sign_names_map[label]
-
-    def configure(self, one_hot=True, train_validate_split_percentage=0.05):
+    def configure(self, one_hot=True, train_validate_split_percentage=0.2):
         """
         Pipeline import sequence
 
-          1. Loads the original data from the respective pickle files.
-          2. Splits the training set into a training and validation set.
-          3.
+          1. Reads in the signnames.csv and constructs a dictionary. The key is the class number and the value is
+             the name of the traffic sign.
+
+          2. Loads the original data from the respective pickle files.
+
+          3. Splits the training set into a training and validation set (train_orig and validate_orig, respectively).
+
+          4. Computes the various metrics about the datasets such as the number of train features and the number of
+             unique train labels.
+
+          5. Prepares the images by doing the following:
+
+              5a) Places the original images into an "orig" bucket. So the training, validation and test
+                 images will be in the train_orig, validate_orig and test_orig buckets respectively.
+
+              5b) Places a grayscale representation of the original images into a "gray" bucket. So the training,
+                 validation and test images will be in the train_gray, validate_gray and test_gray buckets,
+                 respectively.
+
+              5c) Places a flattened representation of the grayscale images into a "flat" bucket. So the training,
+                 validation and test images will be in the train_flat, validate_flat and test_flat buckets,
+                 respectively.
+
+              Bucket keys:
+
+                orig:       The original unprocessed images
+                gray:       The original unprocessed images with a grayscale filter applied
+                flat:       The grayscale images flattened into a vector
+
+          6. If the one_hot parameter is true, then all train, validate and test labels are converted to a
+             self.num_classes-demensional vector where each value in the vector is zero except for the index
+             corresponding the class number corresponding to the original label value.
         """
         if not self.__configured:
             self.__one_hot_encoded = one_hot
@@ -69,6 +89,16 @@ class GermanTrafficSignDataset:
                 self.__one_hot_encode_labels
             ]]
             self.__configured = True
+
+    def one_hot_encoded(self):
+        return self.__one_hot_encoded
+
+    def label_sign_name(self, labels, idx):
+        if self.one_hot_encoded:
+            label = np.argmax(labels[idx])
+        else:
+            label = labels[idx]
+        return label, self.sign_names_map[label]
 
     def restore_from_data(self, data):
         """
@@ -246,7 +276,20 @@ class GermanTrafficSignDataset:
 
     def __prepare_images(self):
         """
-        This method bucketizes the original images.
+        Prepares the images by doing the following:
+
+              1. Places the original images into an "orig" bucket. So the training, validation and test
+                 images will be in the train_orig, validate_orig and test_orig buckets respectively.
+
+              2. Places a grayscale representation of the original images into a "gray" bucket. So the training,
+                 validation and test images will be in the train_gray, validate_gray and test_gray buckets,
+                 respectively.
+
+              3. Places a flattened representation of the grayscale images into a "flat" bucket. So the training,
+                 validation and test images will be in the train_flat, validate_flat and test_flat buckets,
+                 respectively.
+
+        Bucket keys:
 
             orig:       The original unprocessed images
             gray:       The original unprocessed images with a grayscale filter applied
@@ -383,75 +426,3 @@ class GermanTrafficSignDataset:
             result.append('  {} - {}'.format(k, v))
         result.append(' ')
         return '\n'.join(result)
-
-
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import matplotlib.gridspec as gridspec
-
-
-class ImagePlotter:
-    @staticmethod
-    def plot_image(image):
-        # image = mpimg.imread(X_train[0][0])
-        # image = X_train[0][0]
-        plt.imshow(image, interpolation='nearest')
-        # plt.imshow(image)
-        plt.axis('off')
-        plt.show()
-
-    @staticmethod
-    def plot_images1(images, labels, cmap=None):
-        gs = gridspec.GridSpec(10, 10)
-        gs.update(wspace=0.01, hspace=0.02)  # set the spacing between axes.
-
-        plt.figure(figsize=(12, 12))
-
-        for i in range(len(images)):
-            ax = plt.subplot(gs[i])
-
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-
-            ax.set_aspect('equal')
-            xlabel = "T: {0}, P: {1}".format(labels[i], None)
-            ax.set_xlabel(xlabel)
-
-            # Remove ticks from the plot.
-            ax.set_xticks([])
-            ax.set_yticks([])
-
-            plt.subplot(10, 10, i + 1)
-            ax.imshow(images[i], cmap=cmap, interpolation='bicubic')
-            # plt.axis('off')
-
-        plt.show()
-
-    def plot_images(images, labels, cls_pred=None, cmap=None):
-        fig, axes = plt.subplots(4, 5)
-        fig.subplots_adjust(hspace=0.5, wspace=0.3)
-
-        for i, ax in enumerate(axes.flat):
-            if i >= len(images):
-                break
-            # Plot image.
-            ax.imshow(images[i], cmap=cmap)
-
-            # Show true and predicted classes.
-            if cls_pred is None:
-                xlabel = "True: {0}".format(labels[i])
-            else:
-                xlabel = "T: {0}, P: {1}".format(labels[i], cls_pred[i])
-
-            # Show the classes as the label on the x-axis.
-            ax.set_xlabel(xlabel)
-
-            # Remove ticks from the plot.
-            ax.set_xticks([])
-            ax.set_yticks([])
-
-        # Ensure the plot is shown correctly with multiple plots
-        # in a single Notebook cell.
-        plt.show()
-
-

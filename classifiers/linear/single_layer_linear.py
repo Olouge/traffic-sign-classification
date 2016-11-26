@@ -4,7 +4,6 @@ import math
 import os
 
 from classifiers.base_neural_network import BaseNeuralNetwork
-from datasets.german_traffic_signs import ImagePlotter
 
 
 class SingleLayerLinear(BaseNeuralNetwork):

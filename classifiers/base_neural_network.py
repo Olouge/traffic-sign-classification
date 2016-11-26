@@ -105,7 +105,8 @@ class BaseNeuralNetwork:
           2. #validate      - Checks the accuracy of the model against the validation set
           3. #predict       - Checks the accuracy of the model against the test set
           4. #serialize     - Serialize the entire dataset.
-          5. #persist
+          5. #persist       - If a validation accuracy greater than MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD
+
 
         :return: None
         """
