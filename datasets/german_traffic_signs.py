@@ -277,7 +277,9 @@ class GermanTrafficSignDataset:
 
     def __prepare_images(self):
         """
-        Prepares the images by doing the following:
+        Prepares the images for training, validation, testing and visualization.
+
+        In particular:
 
               1. Places the original images into an "orig" bucket. So the training, validation and test
                  images will be in the train_orig, validate_orig and test_orig buckets respectively.
