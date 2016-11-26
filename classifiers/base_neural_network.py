@@ -57,6 +57,7 @@ class BaseNeuralNetwork:
         self.uuid = uuid.uuid4()
 
         self.config = None
+        self.__configured = False
 
         self.cost = None
         self.weights = None
@@ -94,6 +95,7 @@ class BaseNeuralNetwork:
         :return:
         """
         self.config = configuration_context
+        self.__configured = True
 
     def generate(self):
         """
@@ -110,35 +112,32 @@ class BaseNeuralNetwork:
 
         :return: None
         """
-        os.system('say "Model fit started"')
-        [self.__with_time(op['label'], op['callback']) for op in [
-            # {'label': 'START TENSORFLOW SESSION', 'callback': self.__open_session},
-            {'label': 'FIT MODEL', 'callback': self.fit},
-            {'label': 'SERIALIZE TRAINED MODEL', 'callback': self.serialize},
-            {'label': 'PERSIST SERIALIZED TRAINED MODEL', 'callback': self.__persist},
-            # {'label': 'START TENSORFLOW SESSION', 'callback': self.__close_session}
-        ]]
-        os.system('say "Model fit complete!"')
+        if self.__configured:
+            os.system('say "Model fit started"')
+            [self.__with_time(op['label'], op['callback']) for op in [
+                {'label': 'FIT MODEL', 'callback': self.fit},
+                {'label': 'SERIALIZE TRAINED MODEL', 'callback': self.serialize},
+                {'label': 'PERSIST SERIALIZED TRAINED MODEL', 'callback': self.__persist}
+            ]]
+            os.system('say "Model fit complete!"')
 
-        if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
-            os.system('say "Best validation accuracy achieved was {:.002f} percent at iteration {}."'.format(
-                (self.best_validation_accuracy * 100), self.last_improvement))
-            os.system('say "Network serialized to the data directory."')
-            os.system('say "The most accurate validation model has been serialized to the trained models directory."')
-        else:
-            os.system(
-                'say "The best validation accuracy achieved was {} percent which is was below the minimum requirement of {} percent. No data was persisted."'.format(
-                    self.best_validation_accuracy,
-                    str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100))))
+            if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
+                os.system('say "Best validation accuracy achieved was {:.002f} percent at iteration {}."'.format(
+                    (self.best_validation_accuracy * 100), self.last_improvement))
+                os.system('say "Network serialized to the data directory."')
+                os.system(
+                    'say "The most accurate validation model has been serialized to the trained models directory."')
+            else:
+                os.system(
+                    'say "The best validation accuracy achieved was {} percent which is below the minimum requirement of {} percent. No data was persisted."'.format(
+                        self.best_validation_accuracy,
+                        str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100))))
 
-    def __accuracy_satisfies_minimum_requirements(self, accuracy_pct):
-        """
-        Compares an accuracy percentage to the minimum validation accuracy checkpoint threshold.
+    def predict(self):
+        raise NotImplementedError
 
-        :param accuracy_pct: A float corresponding to an accuracy measurement.
-        :return: True if the accuracy percentage is greater than or equal to the minimum validation accuracy threshold.
-        """
-        return accuracy_pct >= self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD
+    def fit(self):
+        raise NotImplementedError
 
     def evaluate_accuracy(self, tf_session, validation_accuracy_pct, total_iterations):
         """
@@ -150,23 +149,60 @@ class BaseNeuralNetwork:
         :param total_iterations: The total number of iterations taken to achieve the accuracy percentage.
         :return: Returns True if a checkpoint was saved. Otherwise False.
         """
-        if self.__accuracy_satisfies_minimum_requirements(
-                validation_accuracy_pct) and validation_accuracy_pct > self.best_validation_accuracy:
-            if self.saver is None:
-                self.saver = tf.train.Saver()
+        if self.__configured:
+            if self.__accuracy_satisfies_minimum_requirements(
+                    validation_accuracy_pct) and validation_accuracy_pct > self.best_validation_accuracy:
+                if self.saver is None:
+                    self.saver = tf.train.Saver()
 
-            # Update the best-known validation accuracy.
-            self.best_validation_accuracy = validation_accuracy_pct
+                # Update the best-known validation accuracy.
+                self.best_validation_accuracy = validation_accuracy_pct
 
-            # Set the iteration for the last improvement to current.
-            self.last_improvement = total_iterations
+                # Set the iteration for the last improvement to current.
+                self.last_improvement = total_iterations
 
-            # Save all variables of the TensorFlow graph to file.
-            save_path = os.path.join(self.save_dir, self.__generate_file_name())
+                # Save all variables of the TensorFlow graph to file.
+                save_path = os.path.join(self.save_dir, self.__generate_file_name())
 
-            self.saver.save(sess=tf_session, save_path=save_path)
-            return True
+                self.saver.save(sess=tf_session, save_path=save_path)
+                return True
         return False
+
+    def serialize(self, data={}):
+        if self.__configured:
+            return {
+                **data,
+                **{
+                    'cost': self.cost,
+                    'weights': self.weights,
+                    'biases': self.biases,
+                    'config': {
+                        'hyper_parameters': self.config.hyper_parameters.__dict__,
+                        'data': self.config.data.serialize()
+                    },
+                    'predictions': {
+                        'train': self.train_predictions,
+                        'validate': self.validate_predictions,
+                        'test': self.test_predictions
+                    },
+                    'accuracy': {
+                        'train': self.train_accuracy,
+                        'validate': self.validate_accuracy,
+                        'test': self.test_accuracy
+                    }
+                }
+            }
+        else:
+            return data
+
+    def __accuracy_satisfies_minimum_requirements(self, accuracy_pct):
+        """
+        Compares an accuracy percentage to the minimum validation accuracy checkpoint threshold.
+
+        :param accuracy_pct: A float corresponding to an accuracy measurement.
+        :return: True if the accuracy percentage is greater than or equal to the minimum validation accuracy threshold.
+        """
+        return accuracy_pct >= self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD
 
     def __with_time(self, label, callback):
         start = datetime.now()
@@ -198,36 +234,6 @@ class BaseNeuralNetwork:
             "{:.004f}".format(self.config.hyper_parameters.start_learning_rate),
             self.config.hyper_parameters.epochs,
             self.config.hyper_parameters.batch_size)
-
-    def predict(self):
-        raise NotImplementedError
-
-    def fit(self):
-        raise NotImplementedError
-
-    def serialize(self, data={}):
-        return {
-            **data,
-            **{
-                'cost': self.cost,
-                'weights': self.weights,
-                'biases': self.biases,
-                'config': {
-                    'hyper_parameters': self.config.hyper_parameters.__dict__,
-                    'data': self.config.data.serialize()
-                },
-                'predictions': {
-                    'train': self.train_predictions,
-                    'validate': self.validate_predictions,
-                    'test': self.test_predictions
-                },
-                'accuracy': {
-                    'train': self.train_accuracy,
-                    'validate': self.validate_accuracy,
-                    'test': self.test_accuracy
-                }
-            }
-        }
 
     def __persist(self):
         if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
@@ -285,12 +291,6 @@ class BaseNeuralNetwork:
         correct = (cls_true == cls_pred)
 
         return correct, cls_pred
-
-    # def __open_session(self):
-    #     self.session = tf.InteractiveSession()
-
-    # def __close_session(self):
-    #     self.session.close()
 
     def __str__(self):
         result = []
