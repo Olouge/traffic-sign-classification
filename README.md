@@ -26,7 +26,23 @@ Run these commands in your terminal to install all requirements:
 ```
 $ git clone https://github.com/matthewzimmer/traffic-sign-classification.git
 $ conda env create -f environment.yml
+```
+
+##### Install Tensorflow
+###### GPU
+
+
+```
 $ source activate traffic-sign-classification
+$ export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/mac/gpu/tensorflow-0.11.0-py3-none-any.whl
+$ pip3 install --ignore-installed --upgrade $TF_BINARY_URL
+```
+
+NOTE:   This is still buggy. When I try loading tensorflow, it errors out saying it can't find libcudart.8.0.dylib.
+        Problem is, I have CUDA 7.5 installed.
+
+###### CPU
+```
 $ conda install --name traffic-sign-classification -c conda-forge tensorflow
 ```
 

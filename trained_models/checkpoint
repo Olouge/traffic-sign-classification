@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_40c6a6c7-5eab-4826-af86-0c2874336948_best_validation_0.20S_0.2000LR_10E_20B"
+all_model_checkpoint_paths: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_40c6a6c7-5eab-4826-af86-0c2874336948_best_validation_0.20S_0.2000LR_10E_20B"
