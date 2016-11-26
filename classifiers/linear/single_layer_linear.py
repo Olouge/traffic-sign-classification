@@ -7,7 +7,7 @@ from classifiers.base_neural_network import BaseNeuralNetwork
 from datasets.german_traffic_signs import ImagePlotter
 
 
-class SimpleNeuralNetwork(BaseNeuralNetwork):
+class SingleLayerLinear(BaseNeuralNetwork):
     def fit(self):
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters

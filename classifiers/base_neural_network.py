@@ -51,6 +51,8 @@ class ConfigurationContext:
 
 
 class BaseNeuralNetwork:
+    MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD = 0.85
+
     def __init__(self):
         self.uuid = uuid.uuid4()
 
@@ -116,18 +118,44 @@ class BaseNeuralNetwork:
             # {'label': 'START TENSORFLOW SESSION', 'callback': self.__close_session}
         ]]
         os.system('say "Model fit complete!"')
-        os.system('say "Network serialized to the data directory."')
-        os.system('say "Best validation accuracy achieved was {:.002f} percent at iteration {}."'.format(
-            (self.best_validation_accuracy * 100), self.last_improvement))
-        os.system('say "The most accurate validation model has been serialized to the trained models directory."')
 
-    def evaluate_accuracy(self, session, validation_accuracy, total_iterations):
-        if validation_accuracy > 0.85 and validation_accuracy > self.best_validation_accuracy:
+        if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
+            os.system('say "Best validation accuracy achieved was {:.002f} percent at iteration {}."'.format(
+                (self.best_validation_accuracy * 100), self.last_improvement))
+            os.system('say "Network serialized to the data directory."')
+            os.system('say "The most accurate validation model has been serialized to the trained models directory."')
+        else:
+            os.system(
+                'say "The best validation accuracy achieved was {} percent which is was below the minimum requirement of {} percent. No data was persisted."'.format(
+                    self.best_validation_accuracy,
+                    str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100))))
+
+    def __accuracy_satisfies_minimum_requirements(self, accuracy_pct):
+        """
+        Compares an accuracy percentage to the minimum validation accuracy checkpoint threshold.
+
+        :param accuracy_pct: A float corresponding to an accuracy measurement.
+        :return: True if the accuracy percentage is greater than or equal to the minimum validation accuracy threshold.
+        """
+        return accuracy_pct >= self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD
+
+    def evaluate_accuracy(self, tf_session, validation_accuracy_pct, total_iterations):
+        """
+        Saves the current TensorFlow model variables as they were at the time of observation if the provided accuracy is greater
+        than the previously declared best validation accuracy.
+
+        :param tf_session: A TensorFlow Session to save checkpoints against.
+        :param validation_accuracy_pct: A float corresponding to a validation accuracy measurement.
+        :param total_iterations: The total number of iterations taken to achieve the accuracy percentage.
+        :return: Returns True if a checkpoint was saved. Otherwise False.
+        """
+        if self.__accuracy_satisfies_minimum_requirements(
+                validation_accuracy_pct) and validation_accuracy_pct > self.best_validation_accuracy:
             if self.saver is None:
                 self.saver = tf.train.Saver()
 
             # Update the best-known validation accuracy.
-            self.best_validation_accuracy = validation_accuracy
+            self.best_validation_accuracy = validation_accuracy_pct
 
             # Set the iteration for the last improvement to current.
             self.last_improvement = total_iterations
@@ -135,7 +163,7 @@ class BaseNeuralNetwork:
             # Save all variables of the TensorFlow graph to file.
             save_path = os.path.join(self.save_dir, self.__generate_file_name())
 
-            self.saver.save(sess=session, save_path=save_path)
+            self.saver.save(sess=tf_session, save_path=save_path)
             return True
         return False
 
@@ -201,7 +229,7 @@ class BaseNeuralNetwork:
         }
 
     def __persist(self):
-        if self.best_validation_accuracy > 0.85:
+        if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
             TrainedDataSerializer.save_data(
                 data=self.serialize(),
                 pickle_file='{}_trained_{}TA_{}VA_{}TestA_{}S_{}sLR_{}eLR_{}E_{}B.pickle'.format(
