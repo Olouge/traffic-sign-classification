@@ -355,6 +355,9 @@ class GermanTrafficSignDataset:
         )
 
     def __one_hot_encode_labels(self):
+        """
+        When one-hot encoding is enabled, the train, validate and test labels are one-hot encoded using LabelBinarizer.
+        """
         if self.__one_hot_encoded:
             # [Adapted from Lesson 7 - MiniFlow]
             # Turn labels into numbers and apply One-Hot Encoding
