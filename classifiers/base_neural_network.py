@@ -113,25 +113,30 @@ class BaseNeuralNetwork:
         :return: None
         """
         if self.__configured:
-            os.system('say "Model fit started"')
+            self.__say_log('Model fit started.')
+
             [self.__with_time(op['label'], op['callback']) for op in [
                 {'label': 'FIT MODEL', 'callback': self.fit},
                 {'label': 'SERIALIZE TRAINED MODEL', 'callback': self.serialize},
                 {'label': 'PERSIST SERIALIZED TRAINED MODEL', 'callback': self.__persist}
             ]]
-            os.system('say "Model fit complete!"')
+            self.__say_log('Model fit complete!')
 
             if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
-                os.system('say "Best validation accuracy achieved was {:.002f} percent at iteration {}."'.format(
+                messages = []
+                messages.append('The best validation accuracy achieved was {:.002f} percent at iteration {}.'.format(
                     (self.best_validation_accuracy * 100), self.last_improvement))
-                os.system('say "Network serialized to the data directory."')
-                os.system(
-                    'say "The most accurate validation model has been serialized to the trained models directory."')
+                messages.append('Network serialized to the data directory.')
+                messages.append(
+                    'The most accurate validation model has been serialized to the trained models directory.')
+
+                for msg in messages:
+                    self.__say_log(msg)
             else:
-                os.system(
-                    'say "The best validation accuracy achieved was {} percent which is below the minimum requirement of {} percent. No data was persisted."'.format(
-                        self.best_validation_accuracy,
-                        str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100))))
+                msg = 'The best validation accuracy achieved was {:.002f} percent which is below the minimum requirement of {} percent. No data was persisted.'.format(
+                    self.best_validation_accuracy*100,
+                    str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100)))
+                self.__say_log(msg)
 
     def predict(self):
         raise NotImplementedError
@@ -150,10 +155,7 @@ class BaseNeuralNetwork:
         :return: Returns True if a checkpoint was saved. Otherwise False.
         """
         if self.__configured:
-            if self.__accuracy_satisfies_minimum_requirements(
-                    validation_accuracy_pct) and validation_accuracy_pct > self.best_validation_accuracy:
-                if self.saver is None:
-                    self.saver = tf.train.Saver()
+            if validation_accuracy_pct > self.best_validation_accuracy:
 
                 # Update the best-known validation accuracy.
                 self.best_validation_accuracy = validation_accuracy_pct
@@ -161,11 +163,17 @@ class BaseNeuralNetwork:
                 # Set the iteration for the last improvement to current.
                 self.last_improvement = total_iterations
 
-                # Save all variables of the TensorFlow graph to file.
-                save_path = os.path.join(self.save_dir, self.__generate_file_name())
+                if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
+                    if self.saver is None:
+                        self.saver = tf.train.Saver()
 
-                self.saver.save(sess=tf_session, save_path=save_path)
-                return True
+                    # Save all variables of the TensorFlow graph to file.
+                    save_path = os.path.join(self.save_dir, self.__generate_file_name())
+
+                    self.saver.save(sess=tf_session, save_path=save_path)
+                    return True
+
+                self.__say_log('{:.002f} percent achieved'.format(self.best_validation_accuracy * 100))
         return False
 
     def serialize(self, data={}):
@@ -291,6 +299,10 @@ class BaseNeuralNetwork:
         correct = (cls_true == cls_pred)
 
         return correct, cls_pred
+
+    def __say_log(self, msg):
+        print(msg)
+        os.system('say "{}"'.format(msg))
 
     def __str__(self):
         result = []
