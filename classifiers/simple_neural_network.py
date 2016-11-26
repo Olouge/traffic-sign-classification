@@ -1,9 +1,10 @@
 import tensorflow as tf
 import numpy as np
 import math
+import os
 
 from classifiers.base_neural_network import BaseNeuralNetwork
-from datasets.german_traffic_signs import ImagePlotter, ImageTransformer
+from datasets.german_traffic_signs import ImagePlotter
 
 
 class SimpleNeuralNetwork(BaseNeuralNetwork):
@@ -15,11 +16,11 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
         num_classes = data.num_classes
         num_training = data.num_training
 
-        # learning_rate = tf.constant(hyper_parameters.learning_rate)
+        # learning_rate = tf.constant(hyper_parameters.start_learning_rate)
 
         # Passing global_step to minimize() will increment it at each step.
         global_step = tf.Variable(0, trainable=False)
-        initial_learning_rate = hyper_parameters.learning_rate
+        initial_learning_rate = hyper_parameters.start_learning_rate
         learning_rate = tf.train.exponential_decay(initial_learning_rate, global_step, 20000, 0.96, staircase=True)
 
         training_epochs = hyper_parameters.epochs
@@ -43,7 +44,12 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
         features = tf.placeholder("float", [None, image_size])
         labels = tf.placeholder("float", [None, num_classes])
 
-        # self.x_flat = tf.reshape(features, [-1, image_size])
+        # Feed dicts for training, validation, and test session
+        train_feed_dict = {features: data.train_flat, labels: data.train_labels}
+        valid_feed_dict = {features: data.validate_flat, labels: data.validate_labels}
+        test_feed_dict = {features: data.test_flat, labels: data.test_labels}
+
+        # x_flat = tf.reshape(features, [-1, image_size])
 
         # Hidden layer with RELU activation
         layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
@@ -54,7 +60,8 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
 
         # Define loss and optimizer
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost, global_step=global_step)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost,
+                                                                                            global_step=global_step)
 
         init = tf.initialize_all_variables()
 
@@ -65,67 +72,68 @@ class SimpleNeuralNetwork(BaseNeuralNetwork):
             for epoch in range(training_epochs):
                 # Loop over all batches
                 for i in range(batch_count):
-                    batch_x, batch_y, batch_start, batch_end = data.next_batch(batch_size)
-                    # ImagePlotter.plot_images(ImageTransformer.jitter_images(data.train_orig[batch_start:batch_end]), batch_y)
-                    # ImagePlotter.plot_images(data.train_orig[batch_start:batch_end], np.argmax(batch_y, axis=1))
-                    # Run optimization op (backprop) and cost op (to get loss value)
-                    sess.run(optimizer, feed_dict={features: batch_x, labels: batch_y})
+                    x_batch, y_batch, batch_start, batch_end = data.next_batch(batch_size)
+                    batch_feed_dict = {features: x_batch, labels: y_batch}
 
-                # Display logs per epoch step
-                if epoch % display_step == 0:
-                    c = sess.run(cost, feed_dict={features: batch_x, labels: batch_y})
-                    print("Epoch:", '%04d' % (epoch + 1), 'of', '%04d' % training_epochs)
+                    # ImagePlotter.plot_images(ImageJitterer.jitter_images(data.train_orig[batch_start:batch_end]), batch_y)
+                    # ImagePlotter.plot_images(data.train_orig[batch_start:batch_end], np.argmax(batch_y, axis=1))
+
+                    # Run optimization op (backprop) and cost op (to get loss value)
+                    sess.run(optimizer, feed_dict=batch_feed_dict)
+
+                # Display logs per epoch step and very last batch iteration
+                if epoch % display_step == 0 or (epoch == (training_epochs - 1) and i == (batch_count - 1)):
+                    total_iterations = (epoch + 1)
+
+                    print("Epoch:", '%04d' % total_iterations, 'of', '%04d' % training_epochs)
+
+                    self.config.hyper_parameters.end_learning_rate = sess.run(learning_rate)
+                    self.cost = sess.run(cost, feed_dict=valid_feed_dict)
 
                     # Calculate accuracy
                     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
                     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-                    print("  cost:              ", "{:.9f}".format(c))
-                    print("  train accuracy:    ", accuracy.eval({features: data.train_flat, labels: data.train_labels}))
-                    print("  validate accuracy: ",
-                          accuracy.eval(
-                              {features: data.validate_flat, labels: data.validate_labels}))
-                    print("  test accuracy:     ",
-                          accuracy.eval(
-                              {features: data.test_flat, labels: data.test_labels}))
+                    # store accuracies
+                    self.train_accuracy = accuracy.eval(train_feed_dict)
+                    self.validate_accuracy = accuracy.eval(valid_feed_dict)
+                    self.test_accuracy = accuracy.eval(test_feed_dict)
 
+                    # store predictions
+                    self.train_predictions = tf.cast(correct_prediction.eval(train_feed_dict), "float").eval()
+                    self.test_predictions = tf.cast(correct_prediction.eval(test_feed_dict), "float").eval()
+                    self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
+
+                    print("  cost:              ", "{:.9f}".format(self.cost))
+                    print("  batch accuracy:    ", accuracy.eval(batch_feed_dict))
+                    print("  train accuracy:    ", accuracy.eval(train_feed_dict))
+                    print("  validate accuracy: ", accuracy.eval(valid_feed_dict))
+                    print("  test accuracy:     ", accuracy.eval(test_feed_dict))
                     print("  batch size:        ", batch_size)
                     print("  learning rate:     ", sess.run(learning_rate))
                     print('')
 
-            # store the final results for later analysis
-            self.config.hyper_parameters.learning_rate = sess.run(learning_rate)
+                    saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
+                    if saved == True:
+                        # store the final results for later analysis
+                        self.weights = {
+                            'hidden_layer': weights['hidden_layer'].eval(),
+                            'out': weights['out'].eval()
+                        }
+                        self.biases = {
+                            'hidden_layer': biases['hidden_layer'].eval(),
+                            'out': biases['out'].eval()
+                        }
+                        os.system('say "{:.002f} percent"'.format(self.validate_accuracy * 100))
 
-            self.cost = sess.run(cost, feed_dict={features: data.train_flat, labels: data.train_labels})
-            self.weights = {
-                'hidden_layer': weights['hidden_layer'].eval(),
-                'out': weights['out'].eval()
-            }
-            self.biases = {
-                'hidden_layer': biases['hidden_layer'].eval(),
-                'out': biases['out'].eval()
-            }
+                if total_iterations - self.last_improvement > hyper_parameters.required_accuracy_improvement:
+                    msg = 'No improvement found in a while, stopping optimization after {} iterations. Final accuracy, {} percent at iteration {}.'.format(
+                        total_iterations, str(int(self.validate_accuracy * 100)), self.last_improvement)
 
-            # Calculate accuracy
-            correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
-            accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+                    print(msg)
+                    os.system('say "{}"'.format(msg))
 
-            # store predictions
-            self.train_predictions = tf.cast(
-                correct_prediction.eval({features: data.train_flat, labels: data.train_labels}), "float").eval()
-            self.test_predictions = tf.cast(correct_prediction.eval({features: data.test_flat, labels: data.test_labels}),
-                                            "float").eval()
-            self.validate_predictions = tf.cast(
-                correct_prediction.eval({features: data.validate_flat, labels: data.validate_labels}), "float").eval()
-
-            # store accuracies
-            self.train_accuracy = accuracy.eval({features: data.train_flat, labels: data.train_labels})
-            self.validate_accuracy = accuracy.eval({features: data.validate_flat, labels: data.validate_labels})
-            self.test_accuracy = accuracy.eval({features: data.test_flat, labels: data.test_labels})
-
-            print("cost:                ", self.cost)
-            print("train accuracy:      ", self.train_accuracy)
-            print("validate accuracy:   ", self.validate_accuracy)
-            print("test accuracy:       ", self.test_accuracy)
+                    # Break out from the for-loop.
+                    break
 
             print("Optimization Finished!")
