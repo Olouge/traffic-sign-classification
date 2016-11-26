@@ -16,10 +16,11 @@ class GermanTrafficSignDataset:
     """
     This class contains the following mechanisms:
 
-       1. #configure - Trains a new network from the original traffic sign dataset
-       2. #persist   - Saves a training, validation and test set after training a network
-       3. #restore   - Restores a serialized training, validation and test set via to feed into another network
-       4. Passing an instance of this class to print() prints some hueristics about the dataset.
+       1. #configure  - Trains a new network from the original traffic sign dataset
+       2. #serialize  - Constructs a dictionary representation of this dataset
+       3. #persist    - Saves a training, validation and test set after training a network
+       4. #restore    - Restores a serialized training, validation and test set via to feed into another network
+       5. Passing an instance of this class to print() prints some hueristics about the dataset.
     """
 
     def __init__(self):
