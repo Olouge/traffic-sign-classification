@@ -13,31 +13,33 @@ from serializers.trained_data_serializer import TrainedDataSerializer
 
 
 class GermanTrafficSignDataset:
-    """
-    This class contains the following mechanisms:
+    def __init__(self, verbose=False):
+        """
+        This class contains the following mechanisms:
 
-       1. #configure  - Trains a new network from the original traffic sign dataset
-       2. #serialize  - Constructs a dictionary representation of this dataset
-       3. #persist    - Saves a training, validation and test set after training a network
-       4. #restore    - Restores a serialized training, validation and test set via to feed into another network
-       5. Passing an instance of this class to print() prints some hueristics about the dataset.
-    """
+           1. #configure  - Trains a new network from the original traffic sign dataset
+           2. #serialize  - Constructs a dictionary representation of this dataset
+           3. #persist    - Saves a training, validation and test set after training a network
+           4. #restore    - Restores a serialized training, validation and test set via to feed into another network
+           5. Passing an instance of this class to print() prints some hueristics about the dataset.
+        """
+        self.train_orig, self.train_gray, self.train_flat = np.array([]), np.array([]), np.array([])
+        self.validate_orig, self.validate_gray, self.validate_flat = np.array([]), np.array([]), np.array([])
+        self.test_orig, self.test_gray, self.test_flat = np.array([]), np.array([]), np.array([])
+        self.predict_orig, self.predict_gray, self.predict_flat = np.array([]), np.array([]), np.array([])
 
-    def __init__(self):
-        self.train_orig, self.validate_orig, self.test_orig = None, None, None
-        self.train_gray, self.validate_gray, self.test_gray = None, None, None
-        self.train_flat, self.validate_flat, self.test_flat = None, None, None
+        self.train_labels, self.validate_labels, self.test_labels, self.predict_labels = np.array([]), np.array([]), np.array([]), np.array([])
+        self.num_training, self.num_validation, self.num_testing, self.num_predicting = 0, 0, 0, 0
 
-        self.train_labels, self.train_size, self.train_coords = None, None, None
-        self.validate_labels, self.validate_size, self.validate_coords = None, None, None
-        self.test_labels, self.test_size, self.test_coords = None, None, None
-
-        self.num_training, self.num_validation, self.num_testing, self.num_classes = None, None, None, None
+        self.num_classes = 0
 
         # batch training metrics
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
+        self.__verbose = verbose
+
+        # Flag indicating whether the utilizer has configured the classifier.
         self.__configured = False
 
     def configure(self, one_hot=True, train_validate_split_percentage=0.2):
@@ -201,7 +203,7 @@ class GermanTrafficSignDataset:
             self.__from_data(data)
 
             del data
-            print('train features shape: ', self.train_orig.shape)
+            self.__log('train features shape: {}'.format(self.train_orig.shape))
 
     def plot_images(self):
         if self.__configured:
@@ -237,19 +239,22 @@ class GermanTrafficSignDataset:
 
         training_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'train.p')
         testing_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'test.p')
+        predicting_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'predict.p')
 
         with open(training_file, mode='rb') as f:
             train = pickle.load(f)
         with open(testing_file, mode='rb') as f:
             test = pickle.load(f)
 
-        self.train_orig, self.train_labels, self.train_size, self.train_coords = train['features'], train['labels'], \
-                                                                                 train['sizes'], train['coords']
+        if os.path.isfile(predicting_file):
+            with open(predicting_file, mode='rb') as f:
+                predict = pickle.load(f)
+            self.predict_orig, self.predict_labels = predict['features'], predict['labels']
 
-        self.test_orig, self.test_labels, self.test_size, self.test_coords = test['features'], test['labels'], \
-                                                                             test['sizes'], test['coords']
+        self.train_orig, self.train_labels = train['features'], train['labels']
+        self.test_orig, self.test_labels = test['features'], test['labels']
 
-        print('Loaded traffic-sign-data/train.p and traffic-sign-data/test.p')
+        self.__log('Loaded traffic-sign-data/train.p, traffic-sign-data/test.p and traffic-sign-data/predict.p')
 
     def __split_train_and_validation(self):
         """
@@ -262,7 +267,7 @@ class GermanTrafficSignDataset:
             test_size=self.split_size,
             random_state=832224)
 
-        print(
+        self.__log(
             'Training features and labels randomized and split with train_test_split (validation % of training set: {})'.format(
                 self.split_size))
 
@@ -272,12 +277,12 @@ class GermanTrafficSignDataset:
         self.num_testing = len(self.test_orig)
         self.num_classes = len(np.unique(self.train_labels))
 
-        print('Detected {} training features, {} validation features, {} test features and {} unique classes.'.format(
+        self.__log('Detected {} training features, {} validation features, {} test features and {} unique classes.'.format(
             self.num_training, self.num_validation, self.num_testing, self.num_classes))
 
     def __prepare_images(self):
         """
-        Prepares the images for training, validation, testing and visualization.
+        Prepares the images for training, validation, testing, predicting and visualization.
 
         In particular:
 
@@ -298,58 +303,73 @@ class GermanTrafficSignDataset:
             gray:       The original unprocessed images with a grayscale filter applied
             flat:       The grayscale images flattened into a vector
         """
-        train_orig_images = []
-        train_gray_images = []
-        train_flat_images = []
+        train_orig_images = np.array([])
+        train_gray_images = np.array([])
+        train_flat_images = np.array([])
 
-        validate_orig_images = []
-        validate_gray_images = []
-        validate_flat_images = []
+        validate_orig_images = np.array([])
+        validate_gray_images = np.array([])
+        validate_flat_images = np.array([])
 
-        test_orig_images = []
-        test_gray_images = []
-        test_flat_images = []
+        test_orig_images = np.array([])
+        test_gray_images = np.array([])
+        test_flat_images = np.array([])
+
+        predict_orig_images = np.array([])
+        predict_gray_images = np.array([])
+        predict_flat_images = np.array([])
 
         for image in self.train_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            train_orig_images.append(image)
-            train_gray_images.append(gray_image)
-            train_flat_images.append(flat_image)
+            np.append(train_orig_images, image)
+            np.append(train_gray_images, gray_image)
+            np.append(train_flat_images, flat_image)
 
         for image in self.validate_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            validate_orig_images.append(image)
-            validate_gray_images.append(gray_image)
-            validate_flat_images.append(flat_image)
+            np.append(validate_orig_images, image)
+            np.append(validate_gray_images, gray_image)
+            np.append(validate_flat_images, flat_image)
 
         for image in self.test_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            test_orig_images.append(image)
-            test_gray_images.append(gray_image)
-            test_flat_images.append(flat_image)
+            np.append(test_orig_images, image)
+            np.append(test_gray_images, gray_image)
+            np.append(test_flat_images, flat_image)
+
+        for image in self.predict_orig:
+            gray_image = self.__color2gray(image)
+            flat_image = np.array(gray_image, dtype=np.float32).flatten()
+
+            np.append(predict_orig_images, image)
+            np.append(predict_gray_images, gray_image)
+            np.append(predict_flat_images, flat_image)
 
         # orig bucket
-        self.train_orig = np.array(train_orig_images)
-        self.validate_orig = np.array(validate_orig_images)
-        self.test_orig = np.array(test_orig_images)
+        self.train_orig = train_orig_images
+        self.validate_orig = validate_orig_images
+        self.test_orig = test_orig_images
+        self.predict_orig = predict_orig_images
 
         # gray bucket
-        self.train_gray = np.array(train_gray_images)
-        self.validate_gray = np.array(validate_gray_images)
-        self.test_gray = np.array(test_gray_images)
+        self.train_gray = train_gray_images
+        self.validate_gray = validate_gray_images
+        self.test_gray = test_gray_images
+        self.predict_gray = predict_gray_images
 
         # flat bucket
         self.train_flat = self.__normalize_greyscale(train_flat_images)
         self.validate_flat = self.__normalize_greyscale(validate_flat_images)
         self.test_flat = self.__normalize_greyscale(test_flat_images)
+        self.predict_flat = self.__normalize_greyscale(predict_flat_images)
 
-        print(
+        self.__log(
             'Bucketized german traffic sign images into three buckets: orig, gray and flat. flat is ' \
             'used for network training while orig and gray are meant for visulizations.'
         )
@@ -363,22 +383,26 @@ class GermanTrafficSignDataset:
             # Turn labels into numbers and apply One-Hot Encoding
             encoder = LabelBinarizer()
             encoder.fit(self.train_labels)
-            self.train_labels = encoder.transform(self.train_labels)
 
-            # encoder = LabelBinarizer()
-            # encoder.fit(self.validate_labels)
-            self.validate_labels = encoder.transform(self.validate_labels)
+            if self.train_labels.size > 0:
+                self.train_labels = encoder.transform(self.train_labels)
 
-            # encoder = LabelBinarizer()
-            # encoder.fit(self.test_labels)
-            self.test_labels = encoder.transform(self.test_labels)
+            if self.validate_labels.size > 0:
+                self.validate_labels = encoder.transform(self.validate_labels)
+
+            if self.test_labels.size > 0:
+                self.test_labels = encoder.transform(self.test_labels)
+
+            if self.predict_labels.size > 0:
+                self.predict_labels = encoder.transform(self.predict_labels)
 
             # Change to float32, so it can be multiplied against the features in TensorFlow, which are float32
             self.train_labels = self.train_labels.astype(np.float32)
             self.validate_labels = self.validate_labels.astype(np.float32)
             self.test_labels = self.test_labels.astype(np.float32)
+            self.predict_labels = self.predict_labels.astype(np.float32)
 
-            print('train, validate and test labels have been one-hot encoded using LabelBinarizer.')
+            self.__log('train, validate, test and predict labels have been one-hot encoded using LabelBinarizer.')
 
     def __color2gray(self, image):
         # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -392,12 +416,19 @@ class GermanTrafficSignDataset:
         :param image_data: The image data to be normalized
         :return: Normalized image data
         """
+        if image_data.size <= 0:
+            return image_data
+
         a = 0.1
         b = 0.9
         x_min = np.min(image_data)
         x_max = np.max(image_data)
         x_prime = [a + (((x - x_min) * (b - a)) / (x_max - x_min)) for x in image_data]
         return np.array(x_prime)
+
+    def __log(self, message):
+        if self.__verbose:
+            print(message)
 
     def __str__(self):
         result = []

@@ -1,2 +1,2 @@
-model_checkpoint_path: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_6a528a5e-cf0d-4ade-a8ec-6c8e6aeb8971_best_validation_0.20S_0.2000LR_500E_20B"
-all_model_checkpoint_paths: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_6a528a5e-cf0d-4ade-a8ec-6c8e6aeb8971_best_validation_0.20S_0.2000LR_500E_20B"
+model_checkpoint_path: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_02cd0732-d0f0-497e-977d-3faa35033d67_best_validation_0.20S_0.2000LR_500E_20B"
+all_model_checkpoint_paths: "/Users/matthew/git/udacity/sdcnd/p2-traffic-sign-classification/classifiers/../trained_models/SingleLayerLinear_02cd0732-d0f0-497e-977d-3faa35033d67_best_validation_0.20S_0.2000LR_500E_20B"

@@ -39,9 +39,9 @@ class ImagePlotter:
 
         plt.show()
 
-    def plot_images(images, labels, cls_pred=None, cmap=None):
-        fig, axes = plt.subplots(4, 5)
-        fig.subplots_adjust(hspace=0.5, wspace=0.3)
+    def plot_images(images, labels, rows=5, columns=5, cls_pred=None, cmap=None):
+        fig, axes = plt.subplots(rows, columns)
+        fig.subplots_adjust(hspace=0.5, wspace=0.5)
 
         for i, ax in enumerate(axes.flat):
             if i >= len(images):
