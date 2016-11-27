@@ -3,7 +3,22 @@ import numpy as np
 import math
 import os
 
-from classifiers.base_neural_network import BaseNeuralNetwork
+from classifiers.base_neural_network import BaseNeuralNetwork, HyperParametersContext
+
+
+class SingleLayerHyperParametersContext(HyperParametersContext):
+    def __init__(
+            self,
+            hidden_layer_neuron_count=512,
+            **kwargs
+    ):
+        """
+
+        :param hidden_layer_neuron_count: number of neurons for the hidden layer
+        :param kwargs: Arguments to pass into to super constructor
+        """
+        super(SingleLayerHyperParametersContext, self).__init__(**kwargs)
+        self.hidden_layer_neuron_count = hidden_layer_neuron_count
 
 
 class SingleLayerLinear(BaseNeuralNetwork):
@@ -20,14 +35,17 @@ class SingleLayerLinear(BaseNeuralNetwork):
         # Passing global_step to minimize() will increment it at each step.
         global_step = tf.Variable(0, trainable=False)
         initial_learning_rate = hyper_parameters.start_learning_rate
-        learning_rate = tf.train.exponential_decay(initial_learning_rate, global_step, 20000, 0.96, staircase=True)
+
+        # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
+        decayed_learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate, global_step=global_step,
+                                                           decay_steps=75000, decay_rate=0.96, staircase=True)
 
         training_epochs = hyper_parameters.epochs
         batch_size = hyper_parameters.batch_size
         batch_count = int(math.ceil(num_training / batch_size))
         display_step = 1
 
-        n_hidden_layer = 256  # layer number of features
+        n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
 
         # Store layers weight & bias
         weights = {
@@ -59,8 +77,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
         # Define loss and optimizer
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost,
-                                                                                            global_step=global_step)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=decayed_learning_rate).minimize(cost,
+                                                                                                    global_step=global_step)
 
         init = tf.initialize_all_variables()
 
@@ -86,7 +104,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
                     print("Epoch:", '%04d' % total_iterations, 'of', '%04d' % training_epochs)
 
-                    self.config.hyper_parameters.end_learning_rate = sess.run(learning_rate)
+                    self.config.hyper_parameters.end_learning_rate = sess.run(decayed_learning_rate)
                     self.cost = sess.run(cost, feed_dict=valid_feed_dict)
 
                     # Calculate accuracy
@@ -109,7 +127,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("  validate accuracy: ", accuracy.eval(valid_feed_dict))
                     print("  test accuracy:     ", accuracy.eval(test_feed_dict))
                     print("  batch size:        ", batch_size)
-                    print("  learning rate:     ", sess.run(learning_rate))
+                    print("  learning rate:     ", sess.run(decayed_learning_rate))
                     print('')
 
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
@@ -123,10 +141,10 @@ class SingleLayerLinear(BaseNeuralNetwork):
                             'hidden_layer': biases['hidden_layer'].eval(),
                             'out': biases['out'].eval()
                         }
-                        os.system('say "{:.002f} percent"'.format(self.validate_accuracy * 100))
+                        os.system('say "{:.002f}%"'.format(self.validate_accuracy * 100))
 
                 if total_iterations - self.last_improvement > hyper_parameters.required_accuracy_improvement:
-                    msg = 'No improvement found in a while, stopping optimization after {} iterations. Final accuracy, {} percent at iteration {}.'.format(
+                    msg = 'No improvement found in a while, stopping optimization after {} iterations. Final accuracy, {}% at iteration {}.'.format(
                         total_iterations, str(int(self.validate_accuracy * 100)), self.last_improvement)
 
                     print(msg)

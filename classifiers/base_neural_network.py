@@ -124,7 +124,7 @@ class BaseNeuralNetwork:
 
             if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
                 messages = []
-                messages.append('The best validation accuracy achieved was {:.002f} percent at iteration {}.'.format(
+                messages.append('The best validation accuracy achieved was {:.002f}% at iteration {}.'.format(
                     (self.best_validation_accuracy * 100), self.last_improvement))
                 messages.append('Network serialized to the data directory.')
                 messages.append(
@@ -133,7 +133,7 @@ class BaseNeuralNetwork:
                 for msg in messages:
                     self.__say_log(msg)
             else:
-                msg = 'The best validation accuracy achieved was {:.002f} percent which is below the minimum requirement of {} percent. No data was persisted.'.format(
+                msg = 'The best validation accuracy achieved was {:.002f}% which is below the minimum requirement of {}%. No data was persisted.'.format(
                     self.best_validation_accuracy*100,
                     str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100)))
                 self.__say_log(msg)
@@ -173,7 +173,7 @@ class BaseNeuralNetwork:
                     self.saver.save(sess=tf_session, save_path=save_path)
                     return True
 
-                self.__say_log('{:.002f} percent achieved'.format(self.best_validation_accuracy * 100))
+                self.__say_log('{:.002f}% accuracy'.format(self.best_validation_accuracy * 100))
         return False
 
     def serialize(self, data={}):
