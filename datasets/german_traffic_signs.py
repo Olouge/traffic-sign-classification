@@ -325,11 +325,12 @@ class GermanTrafficSignDataset:
         self.num_training = len(self.train_orig)
         self.num_validation = len(self.validate_orig)
         self.num_testing = len(self.test_orig)
+        self.num_predicting = len(self.predict_orig)
         self.num_classes = len(np.unique(self.train_labels))
 
         self.__log(
-            'Detected {} training features, {} validation features, {} test features and {} unique classes.'.format(
-                self.num_training, self.num_validation, self.num_testing, self.num_classes))
+            'Detected {} training, {} validation, {} test, {} predict features with {} unique possible classes.'.format(
+                self.num_training, self.num_validation, self.num_testing, self.num_predicting, self.num_classes))
 
     def __prepare_images(self):
         """

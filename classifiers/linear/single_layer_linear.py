@@ -49,12 +49,12 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
         # Store layers weight & bias
         weights = {
-            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer])),
-            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]))
+            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer]), name='weights_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
         }
         biases = {
-            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer])),
-            'out': tf.Variable(tf.random_normal([num_classes]))
+            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
         }
 
         # tf Graph input
@@ -65,6 +65,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
         train_feed_dict = {features: data.train_flat, labels: data.train_labels}
         valid_feed_dict = {features: data.validate_flat, labels: data.validate_labels}
         test_feed_dict = {features: data.test_flat, labels: data.test_labels}
+        predict_feed_dict = {features: data.predict_flat, labels: data.predict_labels}
 
         # x_flat = tf.reshape(features, [-1, image_size])
 
@@ -115,10 +116,12 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     self.train_accuracy = accuracy.eval(train_feed_dict)
                     self.validate_accuracy = accuracy.eval(valid_feed_dict)
                     self.test_accuracy = accuracy.eval(test_feed_dict)
+                    self.predict_accuracy = accuracy.eval(predict_feed_dict)
 
                     # store predictions
                     self.train_predictions = tf.cast(correct_prediction.eval(train_feed_dict), "float").eval()
                     self.test_predictions = tf.cast(correct_prediction.eval(test_feed_dict), "float").eval()
+                    self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
                     self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
 
                     print("  cost:              ", "{:.9f}".format(self.cost))
@@ -126,6 +129,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("  train accuracy:    ", accuracy.eval(train_feed_dict))
                     print("  validate accuracy: ", accuracy.eval(valid_feed_dict))
                     print("  test accuracy:     ", accuracy.eval(test_feed_dict))
+                    print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
                     print("  batch size:        ", batch_size)
                     print("  learning rate:     ", sess.run(decayed_learning_rate))
                     print('')
@@ -154,3 +158,49 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     break
 
             print("Optimization Finished!")
+
+    def predict(self, model_name):
+        data = self.config.data
+        hyper_parameters = self.config.hyper_parameters
+
+        image_size = data.train_flat.shape[1]
+        num_classes = data.num_classes
+
+        # Passing global_step to minimize() will increment it at each step.
+        global_step = tf.Variable(0, trainable=False)
+
+        n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
+
+        # Store layers weight & bias
+        weights = {
+            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer]), name='weights_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
+        }
+        biases = {
+            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
+        }
+
+        features = tf.placeholder("float", [None, image_size])
+        labels = tf.placeholder("float", [None, num_classes])
+
+        predict_feed_dict = {features: data.predict_flat, labels: data.predict_labels}
+
+        # Hidden layer with RELU activation
+        layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
+        layer_1 = tf.nn.relu(layer_1)
+
+        # Output layer with linear activation
+        logits = tf.matmul(layer_1, weights['out']) + biases['out']
+
+        with tf.Session() as sess:
+            self.saver = tf.train.Saver()
+            self.saver.restore(sess, self.save_dir + '/' + model_name)
+
+            # Calculate accuracy
+            correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+            accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+            self.predict_accuracy = accuracy.eval(predict_feed_dict)
+            self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
+            print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
+

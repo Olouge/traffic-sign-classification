@@ -144,6 +144,13 @@ class BaseNeuralNetwork:
     def fit(self):
         raise NotImplementedError
 
+    def save_path(self):
+        """
+        Save all variables of the TensorFlow graph to file.
+        :return: The path to the save checkpoint file.
+        """
+        return os.path.join(self.save_dir, self.__generate_file_name())
+
     def evaluate_accuracy(self, tf_session, validation_accuracy_pct, total_iterations):
         """
         Saves the current TensorFlow model variables as they were at the time of observation if the provided accuracy is greater
@@ -168,12 +175,12 @@ class BaseNeuralNetwork:
                         self.saver = tf.train.Saver()
 
                     # Save all variables of the TensorFlow graph to file.
-                    save_path = os.path.join(self.save_dir, self.__generate_file_name())
+                    # save_path = os.path.join(self.save_dir, self.__generate_file_name())
 
-                    self.saver.save(sess=tf_session, save_path=save_path)
+                    self.saver.save(sess=tf_session, save_path=self.save_path)
                     return True
 
-                self.__say_log('{:.002f}% accuracy'.format(self.best_validation_accuracy * 100))
+                self.__say_log('{:.002f}% accurac'.format(self.best_validation_accuracy * 100))
         return False
 
     def serialize(self, data={}):
