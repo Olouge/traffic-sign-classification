@@ -38,12 +38,16 @@ class HyperParametersContext:
 
 
 class ConfigurationContext:
-    def __init__(self, dataset, hyper_parameters=None):
+    OPTIMIZER_TYPE_GRADIENT_DESCENT = 'tf.train.GradientDescentOptimizer'
+    OPTIMIZER_TYPE_ADAGRAD = 'tf.train.AdagradOptimizer'
+
+    def __init__(self, dataset, optimizer_type=OPTIMIZER_TYPE_GRADIENT_DESCENT, hyper_parameters=None):
         """
         :param dataset: An instance of datasets.GermanTrafficSignDataset
         :param hyper_parameters: An instance of HyperParametersContext
         """
         self.data = dataset
+        self.optimizer_type = optimizer_type
         if hyper_parameters is None:
             self.hyper_parameters = HyperParametersContext()
         else:
@@ -134,7 +138,7 @@ class BaseNeuralNetwork:
                     self.__say_log(msg)
             else:
                 msg = 'The best validation accuracy achieved was {:.002f}% which is below the minimum requirement of {}%. No data was persisted.'.format(
-                    self.best_validation_accuracy*100,
+                    self.best_validation_accuracy * 100,
                     str(int(self.MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD * 100)))
                 self.__say_log(msg)
 

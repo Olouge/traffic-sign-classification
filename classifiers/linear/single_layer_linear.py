@@ -3,7 +3,7 @@ import numpy as np
 import math
 import os
 
-from classifiers.base_neural_network import BaseNeuralNetwork, HyperParametersContext
+from classifiers.base_neural_network import BaseNeuralNetwork, HyperParametersContext, ConfigurationContext
 
 
 class SingleLayerHyperParametersContext(HyperParametersContext):
@@ -30,15 +30,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
         num_classes = data.num_classes
         num_training = data.num_training
 
-        # learning_rate = tf.constant(hyper_parameters.start_learning_rate)
-
         # Passing global_step to minimize() will increment it at each step.
         global_step = tf.Variable(0, trainable=False)
-        initial_learning_rate = hyper_parameters.start_learning_rate
-
-        # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
-        decayed_learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate, global_step=global_step,
-                                                           decay_steps=75000, decay_rate=0.96, staircase=True)
 
         training_epochs = hyper_parameters.epochs
         batch_size = hyper_parameters.batch_size
@@ -78,8 +71,17 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
         # Define loss and optimizer
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=decayed_learning_rate).minimize(cost,
-                                                                                                    global_step=global_step)
+
+        if self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT:
+            # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
+            learning_rate = tf.train.exponential_decay(learning_rate=hyper_parameters.start_learning_rate,
+                                                       global_step=global_step,
+                                                       decay_steps=75000, decay_rate=0.96, staircase=True)
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost,
+                                                                                                global_step=global_step)
+        elif self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD:
+            learning_rate = tf.constant(hyper_parameters.start_learning_rate)
+            optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(cost)
 
         init = tf.initialize_all_variables()
 
@@ -105,7 +107,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
                     print("Epoch:", '%04d' % total_iterations, 'of', '%04d' % training_epochs)
 
-                    self.config.hyper_parameters.end_learning_rate = sess.run(decayed_learning_rate)
+                    self.config.hyper_parameters.end_learning_rate = sess.run(learning_rate)
                     self.cost = sess.run(cost, feed_dict=valid_feed_dict)
 
                     # Calculate accuracy
@@ -131,7 +133,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("  test accuracy:     ", accuracy.eval(test_feed_dict))
                     print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
                     print("  batch size:        ", batch_size)
-                    print("  learning rate:     ", sess.run(decayed_learning_rate))
+                    print("  learning rate:     ", sess.run(learning_rate))
                     print('')
 
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
@@ -202,5 +204,4 @@ class SingleLayerLinear(BaseNeuralNetwork):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
             self.predict_accuracy = accuracy.eval(predict_feed_dict)
             self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
-            print("  predict accuracy: {}%".format(math.ceil(accuracy.eval(predict_feed_dict)*100)))
-
+            print("  predict accuracy: {}%".format(math.ceil(accuracy.eval(predict_feed_dict) * 100)))
