@@ -64,7 +64,7 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 data = generate_dataset(one_hot=True, train_validate_split_percentage=0.2)
 
 # GradientDescent optimizer
-simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.22, epochs=200, batch_size=20)
+# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=200, batch_size=32)
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=2, batch_size=20)
 
 # Adagrad optimizer
@@ -73,7 +73,12 @@ simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.O
 
 
 # accuracies
+# 100% accuracy for 5 german signs; 70% with my own images thrown in there
 # test_accuracies('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
+
+# 70% with my own images thrown in there
+# test_accuracies('SingleLayerLinear_fa4c9d40-ce78-4d60-be1f-e852617caa12_best_validation_0.20S_0.2200LR_200E_20B', hidden_layer_neuron_count=256)
+
 # test_accuracies('SingleLayerLinear_faeefc98-c391-4243-901f-716718fd63d7_best_validation_0.20S_0.2200LR_200E_20B', hidden_layer_neuron_count=256)
 
 
