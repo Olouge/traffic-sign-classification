@@ -26,48 +26,26 @@ class SingleLayerLinear(BaseNeuralNetwork):
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
 
-        image_size = data.train_flat.shape[1]
-        num_classes = data.num_classes
-        num_training = data.num_training
+        self.__build_graph()
+
+        features = self.features
+        labels = self.labels
+        logits = self.logits
+
+        # Feed dicts for training, validation, test and prediction
+        train_feed_dict = {features: data.train_flat, labels: data.train_labels}
+        valid_feed_dict = {features: data.validate_flat, labels: data.validate_labels}
+        test_feed_dict = {features: data.test_flat, labels: data.test_labels}
+        predict_feed_dict = {features: data.predict_flat, labels: data.predict_labels}
 
         # Passing global_step to minimize() will increment it at each step.
         global_step = tf.Variable(0, trainable=False)
 
         training_epochs = hyper_parameters.epochs
         batch_size = hyper_parameters.batch_size
+        num_training = data.num_training
         batch_count = int(math.ceil(num_training / batch_size))
         display_step = 1
-
-        n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
-
-        # Store layers weight & bias
-        weights = {
-            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer]), name='weights_hidden_layer'),
-            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
-        }
-        biases = {
-            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
-            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
-        }
-
-        # tf Graph input
-        features = tf.placeholder("float", [None, image_size])
-        labels = tf.placeholder("float", [None, num_classes])
-
-        # Feed dicts for training, validation, and test session
-        train_feed_dict = {features: data.train_flat, labels: data.train_labels}
-        valid_feed_dict = {features: data.validate_flat, labels: data.validate_labels}
-        test_feed_dict = {features: data.test_flat, labels: data.test_labels}
-        predict_feed_dict = {features: data.predict_flat, labels: data.predict_labels}
-
-        # x_flat = tf.reshape(features, [-1, image_size])
-
-        # Hidden layer with RELU activation
-        layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
-        layer_1 = tf.nn.relu(layer_1)
-
-        # Output layer with linear activation
-        logits = tf.matmul(layer_1, weights['out']) + biases['out']
 
         # Define loss and optimizer
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
@@ -139,14 +117,14 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
                     if saved == True:
                         # store the final results for later analysis
-                        self.weights = {
-                            'hidden_layer': weights['hidden_layer'].eval(),
-                            'out': weights['out'].eval()
-                        }
-                        self.biases = {
-                            'hidden_layer': biases['hidden_layer'].eval(),
-                            'out': biases['out'].eval()
-                        }
+                        # self.weights = {
+                        #     'hidden_layer': self.weight_variables['hidden_layer'].eval(),
+                        #     'out': self.weight_variables['out'].eval()
+                        # }
+                        # self.biases = {
+                        #     'hidden_layer': self.bias_variables['hidden_layer'].eval(),
+                        #     'out': self.bias_variables['out'].eval()
+                        # }
                         os.system('say "{:.002f}%"'.format(self.validate_accuracy * 100))
 
                 if total_iterations - self.last_improvement > hyper_parameters.required_accuracy_improvement:
@@ -156,52 +134,61 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print(msg)
                     os.system('say "{}"'.format(msg))
 
-                    # Break out from the for-loop.
                     break
 
             print("Optimization Finished!")
 
     def predict(self, images, true_labels, model_name):
-        data = self.config.data
-        hyper_parameters = self.config.hyper_parameters
+        self.__build_graph()
 
-        image_size = data.train_flat.shape[1]
-        num_classes = data.num_classes
-
-        # Passing global_step to minimize() will increment it at each step.
-        global_step = tf.Variable(0, trainable=False)
-
-        n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
-
-        # Store layers weight & bias
-        weights = {
-            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer]), name='weights_hidden_layer'),
-            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
-        }
-        biases = {
-            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
-            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
-        }
-
-        features = tf.placeholder("float", [None, image_size])
-        labels = tf.placeholder("float", [None, num_classes])
+        features = self.features
+        labels = self.labels
+        logits = self.logits
 
         predict_feed_dict = {features: images, labels: true_labels}
 
-        # Hidden layer with RELU activation
-        layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
-        layer_1 = tf.nn.relu(layer_1)
-
-        # Output layer with linear activation
-        logits = tf.matmul(layer_1, weights['out']) + biases['out']
-
         with tf.Session() as sess:
+            # This seems to take A LOOOOOOONG time so not doing it right now.
+            # self.saver = tf.train.import_meta_graph(self.save_dir + '/' + model_name + '.meta')
+            # self.saver.restore(sess, self.save_dir + '/' + model_name)
             self.saver = tf.train.Saver()
             self.saver.restore(sess, self.save_dir + '/' + model_name)
 
             # Calculate accuracy
             correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-            self.predict_accuracy = accuracy.eval(predict_feed_dict)
-            self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
+
+            # self.predict_accuracy = accuracy.eval(predict_feed_dict)
+            # self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
+
             print("  predict accuracy: {}%".format(math.ceil(accuracy.eval(predict_feed_dict) * 100)))
+
+    def __build_graph(self):
+        data = self.config.data
+        hyper_parameters = self.config.hyper_parameters
+
+        image_size = data.train_flat.shape[1]
+        num_classes = data.num_classes
+
+        n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
+
+        # Store layers weight & bias
+        self.weight_variables = {
+            'hidden_layer': tf.Variable(tf.random_normal([image_size, n_hidden_layer]), name='weights_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
+        }
+        self.bias_variables = {
+            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
+            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
+        }
+
+        self.features = tf.placeholder("float", [None, image_size])
+        self.labels = tf.placeholder("float", [None, num_classes])
+
+        # Hidden layer with RELU activation
+        layer_1 = tf.add(tf.matmul(self.features, self.weight_variables['hidden_layer']),
+                         self.bias_variables['hidden_layer'])
+        layer_1 = tf.nn.relu(layer_1)
+
+        # Output layer with linear activation
+        self.logits = tf.matmul(layer_1, self.weight_variables['out']) + self.bias_variables['out']

@@ -33,6 +33,22 @@ def test_training(dataset,
     return simple_nn
 
 
+def test_accuracies(checkpoint, hidden_layer_neuron_count=512):
+    data = GermanTrafficSignDataset()
+    data.configure(one_hot=True, train_validate_split_percentage=0.2)
+
+    print('')
+    print('Accuracies for {}'.format(checkpoint))
+
+    simple_nn = SingleLayerLinear()
+    simple_nn.configure(ConfigurationContext(dataset=data, hyper_parameters=SingleLayerHyperParametersContext(
+        hidden_layer_neuron_count=hidden_layer_neuron_count)))
+
+    # simple_nn.predict(images=data.train_flat, true_labels=data.train_labels, model_name=checkpoint)
+    # simple_nn.predict(images=data.validate_flat, true_labels=data.validate_labels, model_name=checkpoint)
+    # simple_nn.predict(images=data.test_flat, true_labels=data.test_labels, model_name=checkpoint)
+    simple_nn.predict(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
+
 def test_predictions(checkpoint, hidden_layer_neuron_count=512):
     data = GermanTrafficSignDataset()
     data.configure(one_hot=True, train_validate_split_percentage=0.001)
@@ -45,19 +61,28 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 
 
 # Create fresh German Traffic Sign dataset
-# data = generate_dataset(one_hot=True, train_validate_split_percentage=0.2)
+data = generate_dataset(one_hot=True, train_validate_split_percentage=0.2)
 
 # GradientDescent optimizer
-# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.22, epochs=200, batch_size=20)
+simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.22, epochs=200, batch_size=20)
+# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=2, batch_size=20)
 
 # Adagrad optimizer
 # simple_nn_ag = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD, hidden_layer_neuron_count=512, start_learning_rate=0.22, epochs=200, batch_size=20)
 
+
+
+# accuracies
+# test_accuracies('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
+# test_accuracies('SingleLayerLinear_faeefc98-c391-4243-901f-716718fd63d7_best_validation_0.20S_0.2200LR_200E_20B', hidden_layer_neuron_count=256)
+
+
+# predictions
 # test_predictions(simple_nn.save_path())
 # test_predictions('SingleLayerLinear_34f0f1f9-1b64-4eef-a6b2-d18d2830e7de_best_validation_0.05S_0.2200LR_200E_32B')
 # test_predictions('SingleLayerLinear_c4faddf8-4457-45ac-9c1f-1b5444be235a_best_validation_0.918395VA_0.15S_0.2200LR_300E_32B')
-# test_predictions('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B')
-test_predictions('SingleLayerLinear_faeefc98-c391-4243-901f-716718fd63d7_best_validation_0.20S_0.2200LR_200E_20B', hidden_layer_neuron_count=256)
+# test_predictions('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
+# test_predictions('SingleLayerLinear_faeefc98-c391-4243-901f-716718fd63d7_best_validation_0.20S_0.2200LR_200E_20B', hidden_layer_neuron_count=256)
 
 # test_predictions('SingleLayerLinear_02cd0732-d0f0-497e-977d-3faa35033d67_best_validation_0.20S_0.2000LR_500E_20B')
 
