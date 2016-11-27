@@ -1,7 +1,10 @@
 import pickle
+
+from PIL import Image
 from sklearn.model_selection import train_test_split
 import numpy as np
 import cv2
+from multiprocessing import Pool
 import os
 import csv
 
@@ -28,7 +31,8 @@ class GermanTrafficSignDataset:
         self.test_orig, self.test_gray, self.test_flat = np.array([]), np.array([]), np.array([])
         self.predict_orig, self.predict_gray, self.predict_flat = np.array([]), np.array([]), np.array([])
 
-        self.train_labels, self.validate_labels, self.test_labels, self.predict_labels = np.array([]), np.array([]), np.array([]), np.array([])
+        self.train_labels, self.validate_labels, self.test_labels, self.predict_labels = np.array([]), np.array(
+            []), np.array([]), np.array([])
         self.num_training, self.num_validation, self.num_testing, self.num_predicting = 0, 0, 0, 0
 
         self.num_classes = 0
@@ -85,6 +89,7 @@ class GermanTrafficSignDataset:
             self.sign_names_map = self.__load_sign_names_map()
 
             [f() for f in [
+                self.__generate_prediction_dataset,
                 self.__load_data,
                 self.__split_train_and_validation,
                 self.__compute_metrics,
@@ -93,11 +98,11 @@ class GermanTrafficSignDataset:
             ]]
             self.__configured = True
 
-    def one_hot_encoded(self):
+    def is_one_hot_encoded(self):
         return self.__one_hot_encoded
 
     def label_sign_name(self, labels, idx):
-        if self.one_hot_encoded:
+        if self.__one_hot_encoded == True:
             label = np.argmax(labels[idx])
         else:
             label = labels[idx]
@@ -156,18 +161,22 @@ class GermanTrafficSignDataset:
             'train_orig': self.train_orig,
             'validate_orig': self.validate_orig,
             'test_orig': self.test_orig,
+            'predict_orig': self.predict_orig,
 
             'train_gray': self.train_gray,
             'validate_gray': self.validate_gray,
             'test_gray': self.test_gray,
+            'predict_gray': self.predict_gray,
 
             'train_flat': self.train_flat,
             'validate_flat': self.validate_flat,
             'test_flat': self.test_flat,
+            'predict_flat': self.predict_flat,
 
             'train_labels': self.train_labels,
             'validate_labels': self.validate_labels,
             'test_labels': self.test_labels,
+            'predict_labels': self.predict_labels,
 
             'one_hot': self.__one_hot_encoded,
             'split_size': self.split_size
@@ -187,14 +196,14 @@ class GermanTrafficSignDataset:
             self.split_size = data['split_size']
             self.sign_names_map = data['sign_names_map']
 
-            self.train_orig, self.validate_orig, self.test_orig = data['train_orig'], data['validate_orig'], data[
-                'test_orig']
-            self.train_gray, self.validate_gray, self.test_gray = data['train_gray'], data['validate_gray'], data[
-                'test_gray']
-            self.train_flat, self.validate_flat, self.test_flat = data['train_flat'], data['validate_flat'], data[
-                'test_flat']
-            self.train_labels, self.validate_labels, self.test_labels = data['train_labels'], data['validate_labels'], \
-                                                                        data['test_labels']
+            self.train_orig, self.validate_orig, self.test_orig, self.predict_orig = data['train_orig'], data['validate_orig'], data[
+                'test_orig'], data['predict_orig']
+            self.train_gray, self.validate_gray, self.test_gray, self.predict_gray = data['train_gray'], data['validate_gray'], data[
+                'test_gray'], data['predict_gray']
+            self.train_flat, self.validate_flat, self.test_flat, self.predict_flat = data['train_flat'], data[
+                'validate_flat'], data['test_flat'], data['predict_flat']
+            self.train_labels, self.validate_labels, self.test_labels, self.predict_labels = data['train_labels'], data[
+                'validate_labels'], data['test_labels'], data['predict_labels']
 
     def __restore(self, pickle_file='trafficsigns_trained.pickle'):
         if not self.__configured:
@@ -207,14 +216,21 @@ class GermanTrafficSignDataset:
 
     def plot_images(self):
         if self.__configured:
-            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.train_orig[:20]), self.train_labels[:20])
+            ImagePlotter.plot_images(self.train_orig[:20], self.train_labels[:20])
             ImagePlotter.plot_images(self.train_gray[:20], self.train_labels[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.train_gray[:20]), self.train_labels[:20])
 
-            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.test_orig[:20]), self.test_labels[:20])
+            ImagePlotter.plot_images(self.test_orig[:20], self.test_labels[:20])
             ImagePlotter.plot_images(self.test_gray[:20], self.test_labels[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.test_gray[:20]), self.test_labels[:20])
 
-            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.validate_orig[:20]), self.validate_labels[:20])
+            ImagePlotter.plot_images(self.validate_orig[:20], self.validate_labels[:20])
             ImagePlotter.plot_images(self.validate_gray[:20], self.validate_labels[:20], cmap='gray')
+            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.validate_gray[:20]), self.validate_labels[:20])
+
+            ImagePlotter.plot_images(self.predict_orig[:5], self.predict_labels[:5])
+            ImagePlotter.plot_images(self.predict_gray[:5], self.predict_labels[:5], cmap='gray')
+            ImagePlotter.plot_images(ImageJitterer.jitter_images(self.predict_gray[:5]), self.predict_labels[:5])
 
     # private
 
@@ -231,6 +247,40 @@ class GermanTrafficSignDataset:
             for row in plots:
                 map[int(row[0])] = str(row[1])
         return map
+
+    def __generate_prediction_dataset(self):
+        """
+        Reads in all images from the images/predictables directory and puts them into data/predict.p
+        :return:
+        """
+        src_path = os.path.join(os.path.dirname(__file__), '..', 'images', 'predictables')
+        dst_path = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'predict.p')
+
+        if not os.path.isfile(dst_path):
+            listing = os.listdir(src_path)
+            predict_images = []
+            predict_labels = []
+            for file in listing:
+                if file.endswith('jpg') or file.endswith('jpeg'):
+                    im = Image.open(src_path + '/' + file)
+                    # im.resize((32, 32))
+                    # im.save(dst_path + file, "JPEG")
+                    # TODO split the file name by "_" taking last item
+                    # TODO Cast last item to int to reveal the true class
+                    predict_images.append(np.array(im))
+                    predict_labels.append(int(file.split('.')[0].split('_')[-1]))
+
+            # TODO Persist the array of predictable images
+            data = {
+                'features': np.array(predict_images),
+                'labels': np.array(predict_labels)
+            }
+            print(data['features'].shape)
+            print(data['labels'].shape)
+            TrainedDataSerializer.save_data(data, dst_path)
+            self.__log("Read all predictable images from {} and persisted them to {}.".format(src_path, dst_path))
+        else:
+            self.__log("{} already exists. Not creating.".format(dst_path))
 
     def __load_data(self):
         """
@@ -277,8 +327,9 @@ class GermanTrafficSignDataset:
         self.num_testing = len(self.test_orig)
         self.num_classes = len(np.unique(self.train_labels))
 
-        self.__log('Detected {} training features, {} validation features, {} test features and {} unique classes.'.format(
-            self.num_training, self.num_validation, self.num_testing, self.num_classes))
+        self.__log(
+            'Detected {} training features, {} validation features, {} test features and {} unique classes.'.format(
+                self.num_training, self.num_validation, self.num_testing, self.num_classes))
 
     def __prepare_images(self):
         """
@@ -303,65 +354,65 @@ class GermanTrafficSignDataset:
             gray:       The original unprocessed images with a grayscale filter applied
             flat:       The grayscale images flattened into a vector
         """
-        train_orig_images = np.array([])
-        train_gray_images = np.array([])
-        train_flat_images = np.array([])
+        train_orig_images = []
+        train_gray_images = []
+        train_flat_images = []
 
-        validate_orig_images = np.array([])
-        validate_gray_images = np.array([])
-        validate_flat_images = np.array([])
+        validate_orig_images = []
+        validate_gray_images = []
+        validate_flat_images = []
 
-        test_orig_images = np.array([])
-        test_gray_images = np.array([])
-        test_flat_images = np.array([])
+        test_orig_images = []
+        test_gray_images = []
+        test_flat_images = []
 
-        predict_orig_images = np.array([])
-        predict_gray_images = np.array([])
-        predict_flat_images = np.array([])
+        predict_orig_images = []
+        predict_gray_images = []
+        predict_flat_images = []
 
         for image in self.train_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            np.append(train_orig_images, image)
-            np.append(train_gray_images, gray_image)
-            np.append(train_flat_images, flat_image)
+            train_orig_images.append(image)
+            train_gray_images.append(gray_image)
+            train_flat_images.append(flat_image)
 
         for image in self.validate_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            np.append(validate_orig_images, image)
-            np.append(validate_gray_images, gray_image)
-            np.append(validate_flat_images, flat_image)
+            validate_orig_images.append(image)
+            validate_gray_images.append(gray_image)
+            validate_flat_images.append(flat_image)
 
         for image in self.test_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            np.append(test_orig_images, image)
-            np.append(test_gray_images, gray_image)
-            np.append(test_flat_images, flat_image)
+            test_orig_images.append(image)
+            test_gray_images.append(gray_image)
+            test_flat_images.append(flat_image)
 
         for image in self.predict_orig:
             gray_image = self.__color2gray(image)
             flat_image = np.array(gray_image, dtype=np.float32).flatten()
 
-            np.append(predict_orig_images, image)
-            np.append(predict_gray_images, gray_image)
-            np.append(predict_flat_images, flat_image)
+            predict_orig_images.append(image)
+            predict_gray_images.append(gray_image)
+            predict_flat_images.append(flat_image)
 
         # orig bucket
-        self.train_orig = train_orig_images
-        self.validate_orig = validate_orig_images
-        self.test_orig = test_orig_images
-        self.predict_orig = predict_orig_images
+        self.train_orig = np.array(train_orig_images)
+        self.validate_orig = np.array(validate_orig_images)
+        self.test_orig = np.array(test_orig_images)
+        self.predict_orig = np.array(predict_orig_images)
 
         # gray bucket
-        self.train_gray = train_gray_images
-        self.validate_gray = validate_gray_images
-        self.test_gray = test_gray_images
-        self.predict_gray = predict_gray_images
+        self.train_gray = np.array(train_gray_images)
+        self.validate_gray = np.array(validate_gray_images)
+        self.test_gray = np.array(test_gray_images)
+        self.predict_gray = np.array(predict_gray_images)
 
         # flat bucket
         self.train_flat = self.__normalize_greyscale(train_flat_images)
@@ -416,7 +467,7 @@ class GermanTrafficSignDataset:
         :param image_data: The image data to be normalized
         :return: Normalized image data
         """
-        if image_data.size <= 0:
+        if len(image_data) <= 0:
             return image_data
 
         a = 0.1
@@ -439,6 +490,7 @@ class GermanTrafficSignDataset:
         result.append('Training size:               {}'.format(self.num_training))
         result.append('Validation size:             {}'.format(self.num_validation))
         result.append('Testing size:                {}'.format(self.num_testing))
+        result.append('Predicting size:             {}'.format(self.num_predicting))
         result.append('Total classes:               {}'.format(self.num_classes))
         result.append(' ')
         result.append('Training orig shape:         {}'.format(self.train_orig.shape))
@@ -452,6 +504,10 @@ class GermanTrafficSignDataset:
         result.append('Testing orig shape:          {}'.format(self.test_orig.shape))
         result.append('Testing gray shape:          {}'.format(self.test_gray.shape))
         result.append('Testing flat shape:          {}'.format(self.test_flat.shape))
+        result.append(' ')
+        result.append('Predicting orig shape:       {}'.format(self.predict_orig.shape))
+        result.append('Predicting gray shape:       {}'.format(self.predict_gray.shape))
+        result.append('Predicting flat shape:       {}'.format(self.predict_flat.shape))
         result.append(' ')
         result.append('Training label shape:        {}'.format(self.train_labels.shape))
         result.append('Validation flat label shape: {}'.format(self.validate_labels.shape))
