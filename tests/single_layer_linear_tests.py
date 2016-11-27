@@ -38,11 +38,13 @@ def test_predictions(checkpoint):
     print('Prediction Accuracy for {}'.format(checkpoint))
     simple_nn = SingleLayerLinear()
     simple_nn.configure(ConfigurationContext(data, SingleLayerHyperParametersContext()))
-    simple_nn.predict(data.predict_flat, data.predict_labels, checkpoint)
+    simple_nn.predict(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
 
 
 # test_predictions(simple_nn.save_path())
+# test_predictions('SingleLayerLinear_34f0f1f9-1b64-4eef-a6b2-d18d2830e7de_best_validation_0.05S_0.2200LR_200E_32B')
 test_predictions('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B')
+
 # test_predictions('SingleLayerLinear_02cd0732-d0f0-497e-977d-3faa35033d67_best_validation_0.20S_0.2000LR_500E_20B')
 
 # test_predictions('SingleLayerLinear_6a528a5e-cf0d-4ade-a8ec-6c8e6aeb8971_best_validation_0.20S_0.2000LR_500E_20B')

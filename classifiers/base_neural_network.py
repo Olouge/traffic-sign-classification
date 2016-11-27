@@ -180,7 +180,7 @@ class BaseNeuralNetwork:
                     self.saver.save(sess=tf_session, save_path=self.save_path())
                     return True
 
-                self.__say_log('{:.002f}% accurac'.format(self.best_validation_accuracy * 100))
+                self.__say_log('{:.002f}% accuracy'.format(self.best_validation_accuracy * 100))
         return False
 
     def serialize(self, data={}):
