@@ -177,7 +177,7 @@ class BaseNeuralNetwork:
                     # Save all variables of the TensorFlow graph to file.
                     # save_path = os.path.join(self.save_dir, self.__generate_file_name())
 
-                    self.saver.save(sess=tf_session, save_path=self.save_path)
+                    self.saver.save(sess=tf_session, save_path=self.save_path())
                     return True
 
                 self.__say_log('{:.002f}% accurac'.format(self.best_validation_accuracy * 100))

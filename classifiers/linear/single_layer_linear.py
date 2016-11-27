@@ -159,7 +159,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
             print("Optimization Finished!")
 
-    def predict(self, model_name):
+    def predict(self, images, true_labels, model_name):
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
 
@@ -184,7 +184,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
         features = tf.placeholder("float", [None, image_size])
         labels = tf.placeholder("float", [None, num_classes])
 
-        predict_feed_dict = {features: data.predict_flat, labels: data.predict_labels}
+        predict_feed_dict = {features: images, labels: true_labels}
 
         # Hidden layer with RELU activation
         layer_1 = tf.add(tf.matmul(features, weights['hidden_layer']), biases['hidden_layer'])
@@ -202,5 +202,5 @@ class SingleLayerLinear(BaseNeuralNetwork):
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
             self.predict_accuracy = accuracy.eval(predict_feed_dict)
             self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
-            print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
+            print("  predict accuracy: {}%".format(math.ceil(accuracy.eval(predict_feed_dict)*100)))
 

@@ -196,10 +196,14 @@ class GermanTrafficSignDataset:
             self.split_size = data['split_size']
             self.sign_names_map = data['sign_names_map']
 
-            self.train_orig, self.validate_orig, self.test_orig, self.predict_orig = data['train_orig'], data['validate_orig'], data[
-                'test_orig'], data['predict_orig']
-            self.train_gray, self.validate_gray, self.test_gray, self.predict_gray = data['train_gray'], data['validate_gray'], data[
-                'test_gray'], data['predict_gray']
+            self.train_orig, self.validate_orig, self.test_orig, self.predict_orig = data['train_orig'], data[
+                'validate_orig'], data[
+                                                                                         'test_orig'], data[
+                                                                                         'predict_orig']
+            self.train_gray, self.validate_gray, self.test_gray, self.predict_gray = data['train_gray'], data[
+                'validate_gray'], data[
+                                                                                         'test_gray'], data[
+                                                                                         'predict_gray']
             self.train_flat, self.validate_flat, self.test_flat, self.predict_flat = data['train_flat'], data[
                 'validate_flat'], data['test_flat'], data['predict_flat']
             self.train_labels, self.validate_labels, self.test_labels, self.predict_labels = data['train_labels'], data[
@@ -248,37 +252,57 @@ class GermanTrafficSignDataset:
                 map[int(row[0])] = str(row[1])
         return map
 
+    def load_source_prediction_images(self):
+        """
+        Reads in all images from the images/predictables directory.
+        :return: a dictionary of features and labels.
+        """
+        src_path = os.path.join(os.path.dirname(__file__), '..', 'images', 'predictables')
+        listing = os.listdir(src_path)
+        predict_images = []
+        predict_labels = []
+        for file in listing:
+            if file.endswith('jpg') or file.endswith('jpeg'):
+                im = Image.open(src_path + '/' + file)
+                # im.resize((32, 32))
+                predict_images.append(np.array(im))
+                predict_labels.append(int(file.split('.')[0].split('_')[-1]))
+
+        predict_labels = np.array(predict_labels)
+        # if self.__one_hot_encoded:
+        #     predict_labels = self.one_hot_encode_labels(predict_labels)
+
+        data = {
+            'features': np.array(predict_images),
+            'labels': predict_labels
+        }
+
+        print(data['features'].shape)
+        print(data['labels'].shape)
+
+        return data
+
+    def load_serialized_prediction_images(self):
+        predicting_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'predict.p')
+        if os.path.isfile(predicting_file):
+            with open(predicting_file, mode='rb') as f:
+                predict = pickle.load(f)
+            self.predict_orig, self.predict_labels = predict['features'], predict['labels']
+        return self.predict_orig, self.predict_labels
+
     def __generate_prediction_dataset(self):
         """
         Reads in all images from the images/predictables directory and puts them into data/predict.p
         :return:
         """
-        src_path = os.path.join(os.path.dirname(__file__), '..', 'images', 'predictables')
         dst_path = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'predict.p')
 
         if not os.path.isfile(dst_path):
-            listing = os.listdir(src_path)
-            predict_images = []
-            predict_labels = []
-            for file in listing:
-                if file.endswith('jpg') or file.endswith('jpeg'):
-                    im = Image.open(src_path + '/' + file)
-                    # im.resize((32, 32))
-                    # im.save(dst_path + file, "JPEG")
-                    # TODO split the file name by "_" taking last item
-                    # TODO Cast last item to int to reveal the true class
-                    predict_images.append(np.array(im))
-                    predict_labels.append(int(file.split('.')[0].split('_')[-1]))
-
-            # TODO Persist the array of predictable images
-            data = {
-                'features': np.array(predict_images),
-                'labels': np.array(predict_labels)
-            }
+            data = self.load_source_prediction_images()
             print(data['features'].shape)
             print(data['labels'].shape)
             TrainedDataSerializer.save_data(data, dst_path)
-            self.__log("Read all predictable images from {} and persisted them to {}.".format(src_path, dst_path))
+            self.__log("Saved predictable images to {}.".format(dst_path))
         else:
             self.__log("{} already exists. Not creating.".format(dst_path))
 
@@ -426,33 +450,40 @@ class GermanTrafficSignDataset:
             'used for network training while orig and gray are meant for visulizations.'
         )
 
+    def one_hot_encode_labels(self, labels):
+        """
+        Turn labels into numbers and apply One-Hot Encoding.
+
+        [Adapted from Lesson 7 - MiniFlow]
+        """
+        encoder = LabelBinarizer()
+        encoder.fit(self.train_labels)
+
+        # Change to float32, so it can be multiplied against the features in TensorFlow, which are float32
+        return encoder.transform(labels).astype(np.float32)
+
     def __one_hot_encode_labels(self):
         """
         When one-hot encoding is enabled, the train, validate and test labels are one-hot encoded using LabelBinarizer.
         """
         if self.__one_hot_encoded:
-            # [Adapted from Lesson 7 - MiniFlow]
-            # Turn labels into numbers and apply One-Hot Encoding
-            encoder = LabelBinarizer()
-            encoder.fit(self.train_labels)
-
             if self.train_labels.size > 0:
-                self.train_labels = encoder.transform(self.train_labels)
+                self.train_labels = self.one_hot_encode_labels(self.train_labels)
 
             if self.validate_labels.size > 0:
-                self.validate_labels = encoder.transform(self.validate_labels)
+                self.validate_labels = self.one_hot_encode_labels(self.validate_labels)
 
             if self.test_labels.size > 0:
-                self.test_labels = encoder.transform(self.test_labels)
+                self.test_labels = self.one_hot_encode_labels(self.test_labels)
 
             if self.predict_labels.size > 0:
-                self.predict_labels = encoder.transform(self.predict_labels)
+                self.predict_labels = self.one_hot_encode_labels(self.predict_labels)
 
             # Change to float32, so it can be multiplied against the features in TensorFlow, which are float32
-            self.train_labels = self.train_labels.astype(np.float32)
-            self.validate_labels = self.validate_labels.astype(np.float32)
-            self.test_labels = self.test_labels.astype(np.float32)
-            self.predict_labels = self.predict_labels.astype(np.float32)
+            # self.train_labels = self.train_labels.astype(np.float32)
+            # self.validate_labels = self.validate_labels.astype(np.float32)
+            # self.test_labels = self.test_labels.astype(np.float32)
+            # self.predict_labels = self.predict_labels.astype(np.float32)
 
             self.__log('train, validate, test and predict labels have been one-hot encoded using LabelBinarizer.')
 
