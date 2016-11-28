@@ -61,14 +61,11 @@ class SingleLayerLinear(BaseNeuralNetwork):
             learning_rate = tf.constant(hyper_parameters.start_learning_rate)
             optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(loss)
 
-        init = tf.initialize_all_variables()
-
         # Launch the graph
         with tf.Session() as sess:
-            sess.run(init)
-            # Training cycle
+            sess.run(tf.initialize_all_variables())
+
             for epoch in range(training_epochs):
-                # Loop over all batches
                 for i in range(batch_count):
                     x_batch, y_batch, batch_start, batch_end = data.next_batch(batch_size)
                     batch_feed_dict = {features: x_batch, labels: y_batch}
@@ -86,7 +83,6 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("Epoch:", '%04d' % total_iterations, 'of', '%04d' % training_epochs)
 
                     self.config.hyper_parameters.end_learning_rate = sess.run(learning_rate)
-                    self.loss = sess.run(loss, feed_dict=valid_feed_dict)
 
                     # Calculate accuracy
                     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
@@ -104,6 +100,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
                     self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
 
+                    self.loss = sess.run(loss, feed_dict=valid_feed_dict)
                     print("  loss:              ", "{:.9f}".format(self.loss))
                     print("  batch accuracy:    ", accuracy.eval(batch_feed_dict))
                     print("  train accuracy:    ", accuracy.eval(train_feed_dict))
@@ -162,14 +159,14 @@ class SingleLayerLinear(BaseNeuralNetwork):
             print('top 1:')
             print('')
             print(top_1)
-            print(top_1.eval())
-            print(top_1.eval().shape)
-
-            print('top {}:'.format(k))
             print('')
-            print(top_k)
-            print(top_k.eval())
-            print(top_k.eval().shape)
+            print(top_1.values)
+            print('')
+            print(top_1.indices)
+            print('')
+            print(top_1.values.shape)
+            print('')
+            print(top_1.indices.shape)
 
     def predict(self, images, true_labels, model_name):
         self.__build_graph()
