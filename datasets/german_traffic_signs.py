@@ -116,7 +116,7 @@ class GermanTrafficSignDataset:
             try:
                 labels = np.argmax(labels, axis=1)
             except:
-                print('attempted to undo one-hot but failed.')
+                ignore = True
         # for cls in np.unique(labels):
         #     class_counts[cls] = labels.tolist().count(cls)
         # self.class_counts = class_counts
@@ -575,7 +575,9 @@ class GermanTrafficSignDataset:
         result.append(' ')
         result.append('Sign names:')
         result.append(' ')
+        result.append('  class - no. train - sign name')
+        result.append(' ')
         for k, v in self.sign_names_map.items():
-            result.append('  {} - {} - ({} in training set)'.format(k, v, self.class_counts[k]))
+            result.append('  {} -  {} - {}'.format(k, self.class_counts[k], v))
         result.append(' ')
         return '\n'.join(result)

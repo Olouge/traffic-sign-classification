@@ -209,8 +209,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
             correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-            predictions = tf.cast(correct_prediction.eval(feed_dict), "bool").eval()
-            print(predictions)
+            # predictions = tf.cast(correct_prediction.eval(feed_dict), "bool").eval()
+            # print(predictions)
 
             correct = (np.argmax(true_labels, axis=1) == cls_pred)
 
@@ -233,8 +233,6 @@ class SingleLayerLinear(BaseNeuralNetwork):
             'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
         }
         self.bias_variables = {
-            # 'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
-            # 'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
             'hidden_layer': tf.Variable(tf.zeros([n_hidden_layer]), name='biases_hidden_layer'),
             'out': tf.Variable(tf.zeros([num_classes]), name='biases_out')
         }

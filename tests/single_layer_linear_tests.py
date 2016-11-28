@@ -1,6 +1,9 @@
+import numpy as np
+
 from classifiers.base_neural_network import ConfigurationContext
 from classifiers.linear.single_layer_linear import SingleLayerLinear, SingleLayerHyperParametersContext
 from datasets.german_traffic_signs import GermanTrafficSignDataset
+from plot.image_plotter import ImagePlotter
 
 
 def generate_dataset(one_hot=True,
@@ -76,6 +79,10 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
     simple_nn.configure(ConfigurationContext(dataset=data, hyper_parameters=SingleLayerHyperParametersContext(
         hidden_layer_neuron_count=hidden_layer_neuron_count)))
     correct, predicted = simple_nn.predict(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
+    print(correct)
+    print(predicted)
+
+    ImagePlotter.plot_images(data.predict_orig[:12], np.argmax(data.predict_labels[:12], axis=1), cls_pred=predicted, rows=2, columns=6)
 
 
 # Create fresh German Traffic Sign dataset
@@ -108,7 +115,7 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 
 # accuracies
 # test_accuracies('SingleLayerLinear_dca487dd-bcec-4547-a051-8495a943bcf7_best_validation_0.20S_0.2000LR_300E_20B_512HN', hidden_layer_neuron_count=512)
-test_accuracies('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
+test_predictions('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
 # test_accuracies('SingleLayerLinear_99d2e377-a8d6-4c22-89b3-13eb9edea291_best_validation_0.20S_0.2000LR_500E_32B', hidden_layer_neuron_count=512)
 
 # 100% accuracy for 5 german signs; 70% with my own images thrown in there
