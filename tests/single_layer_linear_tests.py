@@ -10,19 +10,21 @@ def generate_dataset(one_hot=True,
     return data
 
 
-def test_training(dataset,
+def test_training(one_hot=True, train_validate_split_percentage=0.2,
                   optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
                   hidden_layer_neuron_count=512,
                   start_learning_rate=0.22,
                   epochs=200,
                   batch_size=32,
                   required_accuracy_improvement=50):
+    data = generate_dataset(one_hot=one_hot, train_validate_split_percentage=train_validate_split_percentage)
+
     hyper_parameters = SingleLayerHyperParametersContext(hidden_layer_neuron_count=hidden_layer_neuron_count,
                                                          start_learning_rate=start_learning_rate,
                                                          epochs=epochs,
                                                          batch_size=batch_size,
                                                          required_accuracy_improvement=required_accuracy_improvement)
-    config = ConfigurationContext(dataset=dataset, optimizer_type=optimizer_type, hyper_parameters=hyper_parameters)
+    config = ConfigurationContext(dataset=data, optimizer_type=optimizer_type, hyper_parameters=hyper_parameters)
 
     simple_nn = SingleLayerLinear()
     simple_nn.configure(config)
@@ -49,6 +51,21 @@ def test_accuracies(checkpoint, hidden_layer_neuron_count=512):
     # simple_nn.predict(images=data.test_flat, true_labels=data.test_labels, model_name=checkpoint)
     simple_nn.predict(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
 
+
+def top_5(checkpoint, hidden_layer_neuron_count):
+    data = GermanTrafficSignDataset()
+    data.configure(one_hot=True, train_validate_split_percentage=0.2)
+
+    print('')
+    print('Accuracies for {}'.format(checkpoint))
+
+    simple_nn = SingleLayerLinear()
+    simple_nn.configure(ConfigurationContext(dataset=data, hyper_parameters=SingleLayerHyperParametersContext(
+        hidden_layer_neuron_count=hidden_layer_neuron_count)))
+
+    simple_nn.top_k(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
+
+
 def test_predictions(checkpoint, hidden_layer_neuron_count=512):
     data = GermanTrafficSignDataset()
     data.configure(one_hot=True, train_validate_split_percentage=0.001)
@@ -56,16 +73,31 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
     print('')
     print('Prediction Accuracy for {}'.format(checkpoint))
     simple_nn = SingleLayerLinear()
-    simple_nn.configure(ConfigurationContext(dataset=data, hyper_parameters=SingleLayerHyperParametersContext(hidden_layer_neuron_count=hidden_layer_neuron_count)))
+    simple_nn.configure(ConfigurationContext(dataset=data, hyper_parameters=SingleLayerHyperParametersContext(
+        hidden_layer_neuron_count=hidden_layer_neuron_count)))
     simple_nn.predict(images=data.predict_flat, true_labels=data.predict_labels, model_name=checkpoint)
 
 
 # Create fresh German Traffic Sign dataset
-data = generate_dataset(one_hot=True, train_validate_split_percentage=0.2)
+# data = generate_dataset(one_hot=True, train_validate_split_percentage=0.2)
+
+# Top 5
+
+# top_5('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
 
 # GradientDescent optimizer
+simple_nn_gd = test_training(
+    one_hot=True,
+    train_validate_split_percentage=0.2,
+    optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
+    epochs=500,
+    batch_size=32,
+    start_learning_rate=0.2,
+    hidden_layer_neuron_count=512
+)
+
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=200, batch_size=32)
-# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=2, batch_size=20)
+# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.2, epochs=2, batch_size=20)
 
 # Adagrad optimizer
 # simple_nn_ag = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD, hidden_layer_neuron_count=512, start_learning_rate=0.22, epochs=200, batch_size=20)

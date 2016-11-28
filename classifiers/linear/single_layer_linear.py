@@ -48,18 +48,18 @@ class SingleLayerLinear(BaseNeuralNetwork):
         display_step = 1
 
         # Define loss and optimizer
-        cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
 
         if self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT:
             # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
             learning_rate = tf.train.exponential_decay(learning_rate=hyper_parameters.start_learning_rate,
                                                        global_step=global_step,
                                                        decay_steps=75000, decay_rate=0.96, staircase=True)
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost,
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss,
                                                                                                 global_step=global_step)
         elif self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD:
             learning_rate = tf.constant(hyper_parameters.start_learning_rate)
-            optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(cost)
+            optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(loss)
 
         init = tf.initialize_all_variables()
 
@@ -76,7 +76,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     # ImagePlotter.plot_images(ImageJitterer.jitter_images(data.train_orig[batch_start:batch_end]), batch_y)
                     # ImagePlotter.plot_images(data.train_orig[batch_start:batch_end], np.argmax(batch_y, axis=1))
 
-                    # Run optimization op (backprop) and cost op (to get loss value)
+                    # Run optimization op (backprop) and loss op (to get loss value)
                     sess.run(optimizer, feed_dict=batch_feed_dict)
 
                 # Display logs per epoch step and very last batch iteration
@@ -86,7 +86,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("Epoch:", '%04d' % total_iterations, 'of', '%04d' % training_epochs)
 
                     self.config.hyper_parameters.end_learning_rate = sess.run(learning_rate)
-                    self.cost = sess.run(cost, feed_dict=valid_feed_dict)
+                    self.loss = sess.run(loss, feed_dict=valid_feed_dict)
 
                     # Calculate accuracy
                     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
@@ -104,7 +104,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
                     self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
 
-                    print("  cost:              ", "{:.9f}".format(self.cost))
+                    print("  loss:              ", "{:.9f}".format(self.loss))
                     print("  batch accuracy:    ", accuracy.eval(batch_feed_dict))
                     print("  train accuracy:    ", accuracy.eval(train_feed_dict))
                     print("  validate accuracy: ", accuracy.eval(valid_feed_dict))
@@ -137,6 +137,39 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     break
 
             print("Optimization Finished!")
+
+    def top_k(self, images, true_labels, model_name, k=5):
+        self.__build_graph()
+
+        features = self.features
+        labels = self.labels
+        logits = self.logits
+
+        with tf.Session() as sess:
+            self.saver = tf.train.Saver()
+            self.saver.restore(sess, self.save_dir + '/' + model_name)
+
+            # Calculate predictions.
+            # in_top_k_op = tf.nn.in_top_k(logits, true_labels, k)
+            top_1_op = tf.nn.top_k(logits, 1)
+            top_1 = sess.run(top_1_op, feed_dict={features: images})
+
+            top_k_op = tf.nn.top_k(logits, k)
+            top_k = sess.run(top_k_op, feed_dict={features: images})
+
+            y_pred, input = top_1.values, top_1.indices
+
+            print('top 1:')
+            print('')
+            print(top_1)
+            print(top_1.eval())
+            print(top_1.eval().shape)
+
+            print('top {}:'.format(k))
+            print('')
+            print(top_k)
+            print(top_k.eval())
+            print(top_k.eval().shape)
 
     def predict(self, images, true_labels, model_name):
         self.__build_graph()
@@ -178,8 +211,10 @@ class SingleLayerLinear(BaseNeuralNetwork):
             'out': tf.Variable(tf.random_normal([n_hidden_layer, num_classes]), name='weights_out')
         }
         self.bias_variables = {
-            'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
-            'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
+            # 'hidden_layer': tf.Variable(tf.random_normal([n_hidden_layer]), name='biases_hidden_layer'),
+            # 'out': tf.Variable(tf.random_normal([num_classes]), name='biases_out')
+            'hidden_layer': tf.Variable(tf.zeros([n_hidden_layer]), name='biases_hidden_layer'),
+            'out': tf.Variable(tf.zeros([num_classes]), name='biases_out')
         }
 
         self.features = tf.placeholder("float", [None, image_size])

@@ -63,7 +63,7 @@ class BaseNeuralNetwork:
         self.config = None
         self.__configured = False
 
-        self.cost = None
+        self.loss = None
         self.weights = None
         self.biases = None
 
@@ -192,7 +192,7 @@ class BaseNeuralNetwork:
             return {
                 **data,
                 **{
-                    'cost': self.cost,
+                    'loss': self.loss,
                     'weights': self.weights,
                     'biases': self.biases,
                     'config': {
@@ -258,8 +258,9 @@ class BaseNeuralNetwork:
         if self.__accuracy_satisfies_minimum_requirements(self.best_validation_accuracy):
             TrainedDataSerializer.save_data(
                 data=self.serialize(),
-                pickle_file='{}_trained_{}TA_{}VA_{}TestA_{}S_{}sLR_{}eLR_{}E_{}B.pickle'.format(
+                pickle_file='{}_{}_trained_{}TA_{}VA_{}TestA_{}S_{}sLR_{}eLR_{}E_{}B.pickle'.format(
                     self.__class__.__name__,
+                    self.uuid,
                     "{:.004f}".format(self.train_accuracy),
                     "{:.004f}".format(self.validate_accuracy),
                     "{:.004f}".format(self.test_accuracy),
