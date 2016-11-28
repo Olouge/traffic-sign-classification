@@ -1,5 +1,9 @@
+import hashlib
 import pickle
+import zipfile
+from urllib.request import urlretrieve
 
+import shutil
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -16,6 +20,10 @@ from serializers.trained_data_serializer import TrainedDataSerializer
 
 
 class GermanTrafficSignDataset:
+
+    TRAFFIC_SIGN_DATA_SRC_PATH = 'https://d17h27t6h515a5.cloudfront.net/topher/2016/October/580d53ce_traffic-sign-data/traffic-sign-data.zip'
+    TRAFFIC_SIGN_DATA_DST_PATH = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data.zip')
+
     def __init__(self, verbose=False):
         """
         This class contains the following mechanisms:
@@ -331,6 +339,9 @@ class GermanTrafficSignDataset:
         testing_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'test.p')
         predicting_file = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data', 'predict.p')
 
+        if not os.path.isfile(training_file):
+            self.__download_traffic_sign_data()
+
         with open(training_file, mode='rb') as f:
             train = pickle.load(f)
         with open(testing_file, mode='rb') as f:
@@ -345,6 +356,26 @@ class GermanTrafficSignDataset:
         self.test_orig, self.test_labels = test['features'], test['labels']
 
         self.__log('Loaded traffic-sign-data/train.p, traffic-sign-data/test.p and traffic-sign-data/predict.p')
+
+    def __download_traffic_sign_data(self):
+        if not os.path.isfile(self.TRAFFIC_SIGN_DATA_DST_PATH):
+            print('{} not found. Downloading from {} now.'.format(self.TRAFFIC_SIGN_DATA_DST_PATH, self.TRAFFIC_SIGN_DATA_SRC_PATH))
+            urlretrieve(self.TRAFFIC_SIGN_DATA_SRC_PATH, self.TRAFFIC_SIGN_DATA_DST_PATH)
+            print('{} downloaded'.format(self.TRAFFIC_SIGN_DATA_DST_PATH))
+
+        assert hashlib.md5(open(self.TRAFFIC_SIGN_DATA_DST_PATH, 'rb').read()).hexdigest() == 'c2ced7c725ead1fcf7834d2ec2288c77', self.TRAFFIC_SIGN_DATA_DST_PATH + ' file is corrupted.  Remove the file and try again.'
+
+        #extract files:
+        out_path = os.path.join(os.path.dirname(__file__), '..', 'traffic-sign-data')
+        print('Extracting {}'.format(self.TRAFFIC_SIGN_DATA_DST_PATH))
+        with zipfile.ZipFile(self.TRAFFIC_SIGN_DATA_DST_PATH, "r") as z:
+            z.extractall('/tmp/traffic_sign_data')
+
+        shutil.move('/tmp/traffic_sign_data/lab 2 data/train.p', out_path+'/train.p')
+        shutil.move('/tmp/traffic_sign_data/lab 2 data/test.p', out_path+'/test.p')
+        shutil.rmtree('/tmp/traffic_sign_data')
+
+        print('{} extracted'.format(self.TRAFFIC_SIGN_DATA_DST_PATH))
 
     def __split_train_and_validation(self):
         """
