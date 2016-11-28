@@ -114,6 +114,10 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
                     if saved == True:
+                        y_pred = tf.nn.softmax(logits)
+                        top_5_op = tf.nn.top_k(y_pred, 5)
+                        self.top_5 = sess.run(top_5_op, feed_dict={features: data.predict_flat})
+
                         # store the final results for later analysis
                         # self.weights = {
                         #     'hidden_layer': self.weight_variables['hidden_layer'].eval(),
@@ -136,7 +140,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
             print("Optimization Finished!")
 
-    def top_k(self, images, true_labels, model_name, k=5):
+    def top_k(self, images, model_name, k=5):
         self.__build_graph()
 
         features = self.features
@@ -152,25 +156,25 @@ class SingleLayerLinear(BaseNeuralNetwork):
             # Calculate predictions.
             # in_top_k_op = tf.nn.in_top_k(logits, true_labels, k)
             # top_1_op = tf.nn.top_k(logits, 1)
-            top_1_op = tf.nn.top_k(y_pred, 1)
-            top_1 = sess.run(top_1_op, feed_dict={features: images})
+            # top_1_op = tf.nn.top_k(y_pred, 1)
+            # top_1 = sess.run(top_1_op, feed_dict={features: images})
 
-            top_k_op = tf.nn.top_k(logits, 1)
+            top_k_op = tf.nn.top_k(y_pred, k)
             top_k = sess.run(top_k_op, feed_dict={features: images})
 
-            # y_pred, input = top_1.values, top_1.indices
+            print('top {}:'.format(k))
+            print('')
+            print(top_k)
+            print('')
+            print(top_k.values)
+            print('')
+            print(top_k.indices)
+            print('')
+            print(top_k.values.shape)
+            print('')
+            print(top_k.indices.shape)
 
-            print('top 1:')
-            print('')
-            print(top_1)
-            print('')
-            print(top_1.values)
-            print('')
-            print(top_1.indices)
-            print('')
-            print(top_1.values.shape)
-            print('')
-            print(top_1.indices.shape)
+        return top_k
 
     def predict(self, images, true_labels, model_name):
         self.__build_graph()

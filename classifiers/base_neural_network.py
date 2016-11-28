@@ -192,6 +192,7 @@ class BaseNeuralNetwork:
             return {
                 **data,
                 **{
+                    'top_5_predicted_classes': self.top_5,
                     'loss': self.loss,
                     'weights': self.weights,
                     'biases': self.biases,
