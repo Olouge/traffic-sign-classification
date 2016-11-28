@@ -41,15 +41,10 @@ class SingleLayerLinear(BaseNeuralNetwork):
         # Passing global_step to minimize() will increment it at each step.
         global_step = tf.Variable(0, trainable=False)
 
-        training_epochs = hyper_parameters.epochs
-        batch_size = hyper_parameters.batch_size
-        num_training = data.num_training
-        batch_count = int(math.ceil(num_training / batch_size))
-        display_step = 1
-
-        # Define loss and optimizer
+        # Define loss
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
 
+        # Configure optimizer
         if self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT:
             # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
             learning_rate = tf.train.exponential_decay(learning_rate=hyper_parameters.start_learning_rate,
@@ -60,6 +55,12 @@ class SingleLayerLinear(BaseNeuralNetwork):
         elif self.config.optimizer_type == ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD:
             learning_rate = tf.constant(hyper_parameters.start_learning_rate)
             optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(loss)
+
+        training_epochs = hyper_parameters.epochs
+        batch_size = hyper_parameters.batch_size
+        num_training = data.num_training
+        batch_count = int(math.ceil(num_training / batch_size))
+        display_step = 1
 
         # Launch the graph
         with tf.Session() as sess:
@@ -146,15 +147,18 @@ class SingleLayerLinear(BaseNeuralNetwork):
             self.saver = tf.train.Saver()
             self.saver.restore(sess, self.save_dir + '/' + model_name)
 
+            y_pred = tf.nn.softmax(logits)
+
             # Calculate predictions.
             # in_top_k_op = tf.nn.in_top_k(logits, true_labels, k)
-            top_1_op = tf.nn.top_k(logits, 1)
+            # top_1_op = tf.nn.top_k(logits, 1)
+            top_1_op = tf.nn.top_k(y_pred, 1)
             top_1 = sess.run(top_1_op, feed_dict={features: images})
 
-            top_k_op = tf.nn.top_k(logits, k)
+            top_k_op = tf.nn.top_k(logits, 1)
             top_k = sess.run(top_k_op, feed_dict={features: images})
 
-            y_pred, input = top_1.values, top_1.indices
+            # y_pred, input = top_1.values, top_1.indices
 
             print('top 1:')
             print('')
@@ -175,8 +179,6 @@ class SingleLayerLinear(BaseNeuralNetwork):
         labels = self.labels
         logits = self.logits
 
-        predict_feed_dict = {features: images, labels: true_labels}
-
         with tf.Session() as sess:
             # This seems to take A LOOOOOOONG time so not doing it right now.
             # self.saver = tf.train.import_meta_graph(self.save_dir + '/' + model_name + '.meta')
@@ -184,14 +186,37 @@ class SingleLayerLinear(BaseNeuralNetwork):
             self.saver = tf.train.Saver()
             self.saver.restore(sess, self.save_dir + '/' + model_name)
 
+            # Number of images.
+            num_images = len(images)
+
+            # Allocate an array for the predicted classes which
+            # will be calculated in batches and filled into this array.
+            cls_pred = np.zeros(shape=num_images, dtype=np.int)
+
+            feed_dict = {features: images, labels: true_labels}
+
+            y_pred_cls = tf.argmax(logits, dimension=1)
+            # y_true_cls = tf.argmax(labels, 1)
+            # correct_prediction = tf.equal(y_pred_cls, y_true_cls)
+            cls_pred = sess.run(y_pred_cls, feed_dict=feed_dict)
+
+            # predicted_labels = tf.argmax(sess.run(labels, feed_dict=feed_dict), dimension=1).eval()
+            # sign_names = [self.config.data.sign_names_map[label] for label in predicted_labels]
+            # print(predicted_labels)
+            # print(sign_names)
+
             # Calculate accuracy
             correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-            # self.predict_accuracy = accuracy.eval(predict_feed_dict)
-            # self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
+            predictions = tf.cast(correct_prediction.eval(feed_dict), "bool").eval()
+            print(predictions)
 
-            print("  predict accuracy: {}%".format(math.ceil(accuracy.eval(predict_feed_dict) * 100)))
+            correct = (np.argmax(true_labels, axis=1) == cls_pred)
+
+            print("  predict accuracy: {:004f}%".format(accuracy.eval(feed_dict) * 100))
+
+            return correct, cls_pred
 
     def __build_graph(self):
         data = self.config.data

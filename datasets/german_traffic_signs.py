@@ -93,6 +93,7 @@ class GermanTrafficSignDataset:
                 self.__load_data,
                 self.__split_train_and_validation,
                 self.__compute_metrics,
+                self.__compute_class_counts,
                 self.__prepare_images,
                 self.__one_hot_encode_labels
             ]]
@@ -108,6 +109,19 @@ class GermanTrafficSignDataset:
             label = labels[idx]
         return label, self.sign_names_map[label]
 
+    def __compute_class_counts(self):
+        # class_counts = {}
+        labels = self.train_labels
+        if self.__one_hot_encoded:
+            try:
+                labels = np.argmax(labels, axis=1)
+            except:
+                print('attempted to undo one-hot but failed.')
+        # for cls in np.unique(labels):
+        #     class_counts[cls] = labels.tolist().count(cls)
+        # self.class_counts = class_counts
+        self.class_counts = dict(zip(np.unique(labels), np.bincount(labels)))
+
     def restore_from_data(self, data):
         """
         Pipeline import sequence
@@ -117,7 +131,8 @@ class GermanTrafficSignDataset:
         self.__from_data(data)
         if not self.__configured:
             [f() for f in [
-                self.__compute_metrics
+                self.__compute_metrics,
+                self.__compute_class_counts
             ]]
             self.__configured = True
 
@@ -130,7 +145,8 @@ class GermanTrafficSignDataset:
         self.__restore(pickle_file)
         if not self.__configured:
             [f() for f in [
-                self.__compute_metrics
+                self.__compute_metrics,
+                self.__compute_class_counts
             ]]
             self.__configured = True
 
@@ -555,9 +571,11 @@ class GermanTrafficSignDataset:
         result.append('Validation flat label shape: {}'.format(self.validate_labels.shape))
         result.append('Testing gray label shape:    {}'.format(self.test_labels.shape))
         result.append(' ')
+        result.append('Class counts:')
+        result.append(' ')
         result.append('Sign names:')
         result.append(' ')
         for k, v in self.sign_names_map.items():
-            result.append('  {} - {}'.format(k, v))
+            result.append('  {} - {} - ({} in training set)'.format(k, v, self.class_counts[k]))
         result.append(' ')
         return '\n'.join(result)

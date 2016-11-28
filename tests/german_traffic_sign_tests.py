@@ -13,6 +13,7 @@ def test_dimensions(data):
 
 def test_print(data):
     print(data)
+
     for bin_name, bin_data in {
         'train': {'features': data.train_orig, 'labels': data.train_labels},
         'validate': {'features': data.validate_orig, 'labels': data.validate_labels},
