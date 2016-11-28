@@ -83,18 +83,19 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 
 # Top 5
 
-# top_5('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
+top_5('SingleLayerLinear_38eb4c21-45f6-4695-a257-6f964ffef68f_best_validation_0.20S_0.2200LR_200E_32B', hidden_layer_neuron_count=512)
 
 # GradientDescent optimizer
-simple_nn_gd = test_training(
-    one_hot=True,
-    train_validate_split_percentage=0.2,
-    optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
-    epochs=500,
-    batch_size=32,
-    start_learning_rate=0.2,
-    hidden_layer_neuron_count=512
-)
+# simple_nn_gd = test_training(
+#     one_hot=True,
+#     train_validate_split_percentage=0.2,
+#     optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
+#     epochs=500,
+#     batch_size=32,
+#     required_accuracy_improvement=25,
+#     start_learning_rate=0.2,
+#     hidden_layer_neuron_count=512
+# )
 
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=200, batch_size=32)
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.2, epochs=2, batch_size=20)

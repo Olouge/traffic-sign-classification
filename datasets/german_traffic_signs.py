@@ -494,6 +494,16 @@ class GermanTrafficSignDataset:
 
     def __normalize_greyscale(self, image_data):
         """
+        # NOTE: The following algorithm produces an equivalent normalization matrix. I obtained this algorithm from
+        #       Introduction to Tensorflow > 23. Normalized Inputs and Initial Weights > 01:10 into video:
+
+        :param image_data: array of images where each element is a flattened 1-D representation of each image.
+        :return: Normalized 1-D vector representation of all pixels in the original image vectors.
+        """
+        return np.array([((x - 128) / 128) for x in image_data])
+
+    def __normalize_greyscale_lesson_7(self, image_data):
+        """
         Leveraged from Lesson 7 from Tensorflow lab.
         Normalize the image data with Min-Max scaling to a range of [0.1, 0.9]
         :param image_data: The image data to be normalized
