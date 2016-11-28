@@ -7,8 +7,6 @@ import shutil
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import numpy as np
-import cv2
-from multiprocessing import Pool
 import os
 import csv
 
