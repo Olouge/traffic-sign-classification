@@ -116,7 +116,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     if saved == True:
                         y_pred = tf.nn.softmax(logits)
                         top_5_op = tf.nn.top_k(y_pred, 5)
-                        self.top_5 = sess.run(top_5_op, feed_dict={features: data.predict_flat})
+                        self.top_5 = sess.run(top_5_op, feed_dict={features: data.predict_flat, labels: data.predict_labels})
 
                         # store the final results for later analysis
                         # self.weights = {
@@ -140,7 +140,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
             print("Optimization Finished!")
 
-    def top_k(self, images, model_name, k=5):
+    def top_k(self, x, y, model_name, k=5):
         self.__build_graph()
 
         features = self.features
@@ -160,7 +160,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
             # top_1 = sess.run(top_1_op, feed_dict={features: images})
 
             top_k_op = tf.nn.top_k(y_pred, k)
-            top_k = sess.run(top_k_op, feed_dict={features: images})
+            top_k = sess.run(top_k_op, feed_dict={features: x, labels: y})
 
             print('top {}:'.format(k))
             print('')

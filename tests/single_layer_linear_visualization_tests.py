@@ -26,7 +26,7 @@ def compute_top_k(trained_model_name, hidden_layer_neuron_count, k=5):
 
     simple_nn.configure(config_context)
 
-    top_k = simple_nn.top_k(k=k, images=data.predict_flat, model_name=trained_model_name)
+    top_k = simple_nn.top_k(k=k, x=data.predict_flat, y=data.predict_labels, model_name=trained_model_name)
 
     # print(top_k)
 
