@@ -152,25 +152,17 @@ class SingleLayerLinear(BaseNeuralNetwork):
             # Calculate predictions.
             # in_top_k_op = tf.nn.in_top_k(logits, true_labels, k)
             # top_1_op = tf.nn.top_k(logits, 1)
-            top_1_op = tf.nn.top_k(y_pred, 1)
-            top_1 = sess.run(top_1_op, feed_dict={features: images})
+            # top_1_op = tf.nn.top_k(y_pred, 1)
+            # top_1 = sess.run(top_1_op, feed_dict={features: images})
 
-            top_k_op = tf.nn.top_k(logits, 1)
+            top_k_op = tf.nn.top_k(y_pred, k=k, sorted=True, name=None)
             top_k = sess.run(top_k_op, feed_dict={features: images})
+            print(top_k)
+            print(top_k.values)
+            print(top_k.indices)
+            print('done')
+        return top_k.values, top_k.indices
 
-            # y_pred, input = top_1.values, top_1.indices
-
-            print('top 1:')
-            print('')
-            print(top_1)
-            print('')
-            print(top_1.values)
-            print('')
-            print(top_1.indices)
-            print('')
-            print(top_1.values.shape)
-            print('')
-            print(top_1.indices.shape)
 
     def predict(self, images, true_labels, model_name):
         self.__build_graph()
@@ -217,6 +209,24 @@ class SingleLayerLinear(BaseNeuralNetwork):
             print("  predict accuracy: {:004f}%".format(accuracy.eval(feed_dict) * 100))
 
             return correct, cls_pred
+
+    def restore_session(self, checkpoint):
+        self.__build_graph()
+
+        features = self.features
+        labels = self.labels
+        logits = self.logits
+
+        sess = tf.InteractiveSession()
+
+        # with tf.Session() as sess:
+        # This seems to take A LOOOOOOONG time so not doing it right now.
+        # self.saver = tf.train.import_meta_graph(self.save_dir + '/' + model_name + '.meta')
+        # self.saver.restore(sess, self.save_dir + '/' + model_name)
+        self.saver = tf.train.Saver()
+        self.saver.restore(sess, self.save_dir + '/' + checkpoint)
+
+        return sess
 
     def __build_graph(self):
         data = self.config.data

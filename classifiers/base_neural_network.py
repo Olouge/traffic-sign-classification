@@ -148,6 +148,10 @@ class BaseNeuralNetwork:
     def fit(self):
         raise NotImplementedError
 
+    def restore_session(self, checkpoint):
+        raise NotImplementedError
+
+
     def save_path(self):
         """
         Save all variables of the TensorFlow graph to file.
