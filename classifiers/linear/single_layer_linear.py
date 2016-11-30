@@ -63,7 +63,14 @@ class SingleLayerLinear(BaseNeuralNetwork):
         display_step = 1
 
         # Launch the graph
-        with tf.Session() as sess:
+
+        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333, allow_growth=True)
+        # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+        gpu_options = tf.GPUOptions(allow_growth=True)
+
+        config = tf.ConfigProto(gpu_options=gpu_options)
+        # config.gpu_options.allow_growth = True
+        with tf.Session(config=config) as sess:
             sess.run(tf.initialize_all_variables())
 
             for epoch in range(training_epochs):
@@ -147,7 +154,9 @@ class SingleLayerLinear(BaseNeuralNetwork):
         labels = self.labels
         logits = self.logits
 
-        with tf.Session() as sess:
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        with tf.Session(config=config) as sess:
             self.saver = tf.train.Saver()
             self.saver.restore(sess, self.save_dir + '/' + model_name)
 
@@ -183,7 +192,9 @@ class SingleLayerLinear(BaseNeuralNetwork):
         labels = self.labels
         logits = self.logits
 
-        with tf.Session() as sess:
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        with tf.Session(config=config) as sess:
             # This seems to take A LOOOOOOONG time so not doing it right now.
             # self.saver = tf.train.import_meta_graph(self.save_dir + '/' + model_name + '.meta')
             # self.saver.restore(sess, self.save_dir + '/' + model_name)

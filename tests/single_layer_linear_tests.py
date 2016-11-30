@@ -94,16 +94,16 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 # top_5('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
 
 # GradientDescent optimizer
-# simple_nn_gd = test_training(
-#     one_hot=True,
-#     train_validate_split_percentage=0.2,
-#     optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
-#     epochs=300,
-#     batch_size=20,
-#     required_accuracy_improvement=25,
-#     start_learning_rate=0.2,
-#     hidden_layer_neuron_count=256
-# )
+simple_nn_gd = test_training(
+    one_hot=True,
+    train_validate_split_percentage=0.2,
+    optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
+    epochs=1,
+    batch_size=32,
+    required_accuracy_improvement=50,
+    start_learning_rate=0.2,
+    hidden_layer_neuron_count=256
+)
 
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=200, batch_size=32)
 # simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.2, epochs=2, batch_size=20)
@@ -115,7 +115,7 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 
 # accuracies
 # test_accuracies('SingleLayerLinear_dca487dd-bcec-4547-a051-8495a943bcf7_best_validation_0.20S_0.2000LR_300E_20B_512HN', hidden_layer_neuron_count=512)
-test_predictions('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
+# test_predictions('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
 # test_accuracies('SingleLayerLinear_99d2e377-a8d6-4c22-89b3-13eb9edea291_best_validation_0.20S_0.2000LR_500E_32B', hidden_layer_neuron_count=512)
 
 # 100% accuracy for 5 german signs; 70% with my own images thrown in there
