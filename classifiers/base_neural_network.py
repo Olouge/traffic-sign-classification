@@ -155,6 +155,16 @@ class BaseNeuralNetwork:
         """
         return os.path.join(self.save_dir, self.__generate_file_name())
 
+    def track_loss(self, current_loss):
+        """
+        Keeps track of the loss at each iteration.
+        :param current_loss: The value of the loss at a given point in time during training the model.
+        :return:
+        """
+        if not hasattr(self, 'losses'):
+            self.losses = []
+        self.losses.append(current_loss)
+
     def evaluate_accuracy(self, tf_session, validation_accuracy_pct, total_iterations):
         """
         Saves the current TensorFlow model variables as they were at the time of observation if the provided accuracy is greater

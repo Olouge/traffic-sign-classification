@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from classifiers.base_neural_network import ConfigurationContext
 from classifiers.linear.single_layer_linear import SingleLayerLinear, SingleLayerHyperParametersContext
@@ -32,6 +33,10 @@ def test_training(one_hot=True, train_validate_split_percentage=0.2,
     simple_nn = SingleLayerLinear()
     simple_nn.configure(config)
     simple_nn.generate()
+
+    # Plot the losses over time
+    # plt.plot(simple_nn.losses)
+    # plt.show()
 
     # print(simple_nn)
 
@@ -98,7 +103,7 @@ simple_nn_gd = test_training(
     one_hot=True,
     train_validate_split_percentage=0.2,
     optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
-    epochs=1,
+    epochs=5,
     batch_size=32,
     required_accuracy_improvement=50,
     start_learning_rate=0.2,

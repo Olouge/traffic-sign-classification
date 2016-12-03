@@ -26,11 +26,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
 
-        self.__build_graph()
-
-        features = self.features
-        labels = self.labels
-        logits = self.logits
+        features, labels, logits = self.__build_graph()
 
         # Feed dicts for training, validation, test and prediction
         train_feed_dict = {features: data.train_flat, labels: data.train_labels}
@@ -83,6 +79,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
 
                     # Run optimization op (backprop) and loss op (to get loss value)
                     sess.run(optimizer, feed_dict=batch_feed_dict)
+                    # _, current_loss = sess.run([optimizer, loss], feed_dict=batch_feed_dict)
+                    # self.track_loss(current_loss)
 
                 # Display logs per epoch step and very last batch iteration
                 if epoch % display_step == 0 or (epoch == (training_epochs - 1) and i == (batch_count - 1)):
@@ -109,6 +107,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
 
                     self.loss = sess.run(loss, feed_dict=valid_feed_dict)
+                    self.track_loss(self.loss)
+
                     print("  loss:              ", "{:.9f}".format(self.loss))
                     print("  batch accuracy:    ", accuracy.eval(batch_feed_dict))
                     print("  train accuracy:    ", accuracy.eval(train_feed_dict))
@@ -119,21 +119,23 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("  learning rate:     ", sess.run(learning_rate))
                     print('')
 
+                    y_pred = tf.nn.softmax(logits)
+                    top_5_op = tf.nn.top_k(y_pred, 5)
+                    self.top_5 = sess.run(top_5_op,
+                                          feed_dict={features: data.predict_flat, labels: data.predict_labels})
+
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
                     if saved == True:
-                        y_pred = tf.nn.softmax(logits)
-                        top_5_op = tf.nn.top_k(y_pred, 5)
-                        self.top_5 = sess.run(top_5_op, feed_dict={features: data.predict_flat, labels: data.predict_labels})
-
-                        # store the final results for later analysis
-                        # self.weights = {
-                        #     'hidden_layer': self.weight_variables['hidden_layer'].eval(),
-                        #     'out': self.weight_variables['out'].eval()
-                        # }
-                        # self.biases = {
-                        #     'hidden_layer': self.bias_variables['hidden_layer'].eval(),
-                        #     'out': self.bias_variables['out'].eval()
-                        # }
+                        # store the final results for later analysis and prediction runs
+                        # NOTE: I wrote the serializer mechanic prior to discovering tf.train.Saver.
+                        self.weights = {
+                            'hidden_layer': self.weight_variables['hidden_layer'].eval(),
+                            'out': self.weight_variables['out'].eval()
+                        }
+                        self.biases = {
+                            'hidden_layer': self.bias_variables['hidden_layer'].eval(),
+                            'out': self.bias_variables['out'].eval()
+                        }
                         os.system('say "{:.002f}%"'.format(self.validate_accuracy * 100))
 
                 if total_iterations - self.last_improvement > hyper_parameters.required_accuracy_improvement:
@@ -148,11 +150,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
             print("Optimization Finished!")
 
     def top_k(self, x, y, model_name, k=5):
-        self.__build_graph()
-
-        features = self.features
-        labels = self.labels
-        logits = self.logits
+        features, labels, logits = self.__build_graph()
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -186,11 +184,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
         return top_k
 
     def predict(self, images, true_labels, model_name):
-        self.__build_graph()
-
-        features = self.features
-        labels = self.labels
-        logits = self.logits
+        features, labels, logits = self.__build_graph()
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -234,6 +228,11 @@ class SingleLayerLinear(BaseNeuralNetwork):
             return correct, cls_pred
 
     def __build_graph(self):
+        """
+        Builds a 2 layer network with a single hidden layer with n hidden layer neurons.
+
+        :return:
+        """
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
 
@@ -241,6 +240,8 @@ class SingleLayerLinear(BaseNeuralNetwork):
         num_classes = data.num_classes
 
         n_hidden_layer = hyper_parameters.hidden_layer_neuron_count
+
+        self.top_5 = {}
 
         # Store layers weight & bias
         self.weight_variables = {
@@ -252,13 +253,20 @@ class SingleLayerLinear(BaseNeuralNetwork):
             'out': tf.Variable(tf.zeros([num_classes]), name='biases_out')
         }
 
-        self.features = tf.placeholder("float", [None, image_size])
-        self.labels = tf.placeholder("float", [None, num_classes])
+        features = tf.placeholder("float", [None, image_size])
+        labels = tf.placeholder("float", [None, num_classes])
 
         # Hidden layer with RELU activation
-        layer_1 = tf.add(tf.matmul(self.features, self.weight_variables['hidden_layer']),
-                         self.bias_variables['hidden_layer'])
+        layer_1 = tf.add(
+            tf.matmul(
+                features,
+                self.weight_variables['hidden_layer']
+            ),
+            self.bias_variables['hidden_layer']
+        )
         layer_1 = tf.nn.relu(layer_1)
 
         # Output layer with linear activation
-        self.logits = tf.matmul(layer_1, self.weight_variables['out']) + self.bias_variables['out']
+        logits = tf.matmul(layer_1, self.weight_variables['out']) + self.bias_variables['out']
+
+        return features, labels, logits
