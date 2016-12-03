@@ -28,9 +28,25 @@ $ git clone https://github.com/matthewzimmer/traffic-sign-classification.git
 $ conda env create -f environment.yml
 ```
 
-##### Install Tensorflow
-###### GPU
+#### Install Tensorflow
+##### GPU
 
+
+## AWS GPU Configuration
+
+###
+
+[SSH instructions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AccessingInstancesLinux.html)
+
+*Instance ID* i-aab307f5
+*ssh to box* aws ec2 get-console-output --instance-id i-aab307f5
+
+
+######
+
+
+
+###### Local
 
 ```
 $ source activate traffic-sign-classification
