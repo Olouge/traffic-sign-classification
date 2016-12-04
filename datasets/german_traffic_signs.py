@@ -442,7 +442,9 @@ class GermanTrafficSignDataset:
 
         for image in self.train_orig:
             gray_image = self.__color2gray(image)
-            flat_image = np.array(gray_image, dtype=np.float32).flatten()
+            flat_gray = np.array(gray_image, dtype=np.float32).flatten()
+            # flat_orig = np.array(image, dtype=np.float32).flatten()
+            flat_image = flat_gray
 
             train_orig_images.append(image)
             train_gray_images.append(gray_image)
@@ -450,7 +452,9 @@ class GermanTrafficSignDataset:
 
         for image in self.validate_orig:
             gray_image = self.__color2gray(image)
-            flat_image = np.array(gray_image, dtype=np.float32).flatten()
+            flat_gray = np.array(gray_image, dtype=np.float32).flatten()
+            # flat_orig = np.array(image, dtype=np.float32).flatten()
+            flat_image = flat_gray
 
             validate_orig_images.append(image)
             validate_gray_images.append(gray_image)
@@ -458,7 +462,9 @@ class GermanTrafficSignDataset:
 
         for image in self.test_orig:
             gray_image = self.__color2gray(image)
-            flat_image = np.array(gray_image, dtype=np.float32).flatten()
+            flat_gray = np.array(gray_image, dtype=np.float32).flatten()
+            # flat_orig = np.array(image, dtype=np.float32).flatten()
+            flat_image = flat_gray
 
             test_orig_images.append(image)
             test_gray_images.append(gray_image)
@@ -466,7 +472,9 @@ class GermanTrafficSignDataset:
 
         for image in self.predict_orig:
             gray_image = self.__color2gray(image)
-            flat_image = np.array(gray_image, dtype=np.float32).flatten()
+            flat_gray = np.array(gray_image, dtype=np.float32).flatten()
+            # flat_orig = np.array(image, dtype=np.float32).flatten()
+            flat_image = flat_gray
 
             predict_orig_images.append(image)
             predict_gray_images.append(gray_image)

@@ -18,14 +18,14 @@ def test_training(one_hot=True, train_validate_split_percentage=0.2,
                   optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
                   hidden_layer_neuron_count=512,
                   start_learning_rate=0.22,
-                  epochs=200,
+                  training_epochs=200,
                   batch_size=32,
                   required_accuracy_improvement=50):
     data = generate_dataset(one_hot=one_hot, train_validate_split_percentage=train_validate_split_percentage)
 
     hyper_parameters = SingleLayerHyperParametersContext(hidden_layer_neuron_count=hidden_layer_neuron_count,
                                                          start_learning_rate=start_learning_rate,
-                                                         epochs=epochs,
+                                                         training_epochs=training_epochs,
                                                          batch_size=batch_size,
                                                          required_accuracy_improvement=required_accuracy_improvement)
     config = ConfigurationContext(dataset=data, optimizer_type=optimizer_type, hyper_parameters=hyper_parameters)
@@ -99,22 +99,38 @@ def test_predictions(checkpoint, hidden_layer_neuron_count=512):
 # top_5('SingleLayerLinear_e536a998-bc7c-461c-8b2a-fc278de569d8_best_validation_0.20S_0.2000LR_300E_20B_256HN', hidden_layer_neuron_count=256)
 
 # GradientDescent optimizer
-simple_nn_gd = test_training(
-    one_hot=True,
-    train_validate_split_percentage=0.2,
-    optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT,
-    epochs=5,
-    batch_size=32,
-    required_accuracy_improvement=50,
-    start_learning_rate=0.2,
-    hidden_layer_neuron_count=256
-)
-
-# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, epochs=200, batch_size=32)
-# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.2, epochs=2, batch_size=20)
 
 # Adagrad optimizer
-# simple_nn_ag = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD, hidden_layer_neuron_count=512, start_learning_rate=0.22, epochs=200, batch_size=20)
+# Yielded the following trained network:
+#
+# Epoch: 0197 of 0200
+#   loss:               3.842783213
+#   batch accuracy:     1.0
+#   train accuracy:     0.971467
+#   validate accuracy:  0.893139
+#   test accuracy:      0.748852
+#   predict accuracy:   0.692308
+#   batch size:         20
+#   learning rate:      0.2
+#
+# No improvement found in a while, stopping optimization after 197 iterations. Final accuracy, 89% at iteration 171.
+#
+# simple_nn_gd = test_training(
+#     one_hot=True,
+#     train_validate_split_percentage=0.2,
+#     optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD,
+#     training_epochs=200,
+#     batch_size=20,
+#     required_accuracy_improvement=25,
+#     start_learning_rate=2e-1,
+#     hidden_layer_neuron_count=512
+# )
+
+# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=512, start_learning_rate=0.2, training_epochs=200, batch_size=32)
+# simple_nn_gd = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_GRADIENT_DESCENT, hidden_layer_neuron_count=256, start_learning_rate=0.2, training_epochs=2, batch_size=20)
+
+# Adagrad optimizer
+# simple_nn_ag = test_training(dataset=data, optimizer_type=ConfigurationContext.OPTIMIZER_TYPE_ADAGRAD, hidden_layer_neuron_count=512, start_learning_rate=0.22, training_epochs=200, batch_size=20)
 
 
 

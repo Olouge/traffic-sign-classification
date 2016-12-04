@@ -22,6 +22,19 @@ class SingleLayerHyperParametersContext(HyperParametersContext):
 
 
 class SingleLayerLinear(BaseNeuralNetwork):
+    def __init__(self, **kwargs):
+        super(SingleLayerLinear, self).__init__(**kwargs)
+
+        self.weights = None
+        self.biases = None
+
+    def serialize(self, data={}):
+        return {**data, **{
+            'weights': self.weights,
+            'biases': self.biases
+            # 'top_5_predicted_classes': self.top_5
+        }}
+
     def fit(self):
         data = self.config.data
         hyper_parameters = self.config.hyper_parameters
@@ -52,7 +65,7 @@ class SingleLayerLinear(BaseNeuralNetwork):
             learning_rate = tf.constant(hyper_parameters.start_learning_rate)
             optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(loss)
 
-        training_epochs = hyper_parameters.epochs
+        training_epochs = hyper_parameters.training_epochs
         batch_size = hyper_parameters.batch_size
         num_training = data.num_training
         batch_count = int(math.ceil(num_training / batch_size))

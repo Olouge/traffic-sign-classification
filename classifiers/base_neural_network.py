@@ -14,14 +14,14 @@ class HyperParametersContext:
             self,
             start_learning_rate=0.2,
             end_learning_rate=0.2,
-            epochs=15,
+            training_epochs=15,
             batch_size=20,
             exponential_decay_config=None,
             required_accuracy_improvement=100
     ):
         self.start_learning_rate = start_learning_rate
         self.end_learning_rate = end_learning_rate
-        self.epochs = epochs
+        self.training_epochs = training_epochs
         self.batch_size = batch_size
         self.exponential_decay_config = exponential_decay_config
 
@@ -41,13 +41,17 @@ class ConfigurationContext:
     OPTIMIZER_TYPE_GRADIENT_DESCENT = 'tf.train.GradientDescentOptimizer'
     OPTIMIZER_TYPE_ADAGRAD = 'tf.train.AdagradOptimizer'
 
-    def __init__(self, dataset, optimizer_type=OPTIMIZER_TYPE_GRADIENT_DESCENT, hyper_parameters=None):
+    def __init__(self, dataset, optimizer_type=OPTIMIZER_TYPE_GRADIENT_DESCENT, hyper_parameters=None, verbose=True, speak_up=False):
         """
         :param dataset: An instance of datasets.GermanTrafficSignDataset
         :param hyper_parameters: An instance of HyperParametersContext
+        :param verbose: When True, prints logs to STDOUT for various actions done inside the network.
+        :param speak_up: When True and verbose is True, sends a 'say' command to the operating system to project the logs through the computer speakers.
         """
         self.data = dataset
         self.optimizer_type = optimizer_type
+        self.verbose = verbose
+        self.speak_up = speak_up
         if hyper_parameters is None:
             self.hyper_parameters = HyperParametersContext()
         else:
@@ -57,6 +61,8 @@ class ConfigurationContext:
 class BaseNeuralNetwork:
     MINIMUM_VALIDATION_ACCURACY_CHECKPOINT_THRESHOLD = 0.85
 
+    TRAINED_MODEL_CHECKPOINT_DIRECTORY = os.path.join(os.path.dirname(__file__), '..', 'trained_models')
+
     def __init__(self):
         self.uuid = uuid.uuid4()
 
@@ -64,8 +70,6 @@ class BaseNeuralNetwork:
         self.__configured = False
 
         self.loss = None
-        self.weights = None
-        self.biases = None
 
         self.train_predictions = None
         self.test_predictions = None
@@ -81,15 +85,14 @@ class BaseNeuralNetwork:
         # Iteration-number for last improvement to validation accuracy.
         self.last_improvement = 0
 
-        # In order to save the variables of the neural network, we now create a so-called Saver-object which is used
+        # In order to save the variables of the neural network, we create a so-called Saver-object which is used
         # for storing and retrieving all the variables of the TensorFlow graph. Nothing is actually saved at this
         # point, which will be done further below in the optimize()-function.
         self.saver = None
 
         # Directory where all trained models will be stored
-        self.save_dir = os.path.join(os.path.dirname(__file__), '..', 'trained_models')
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+        if not os.path.exists(self.TRAINED_MODEL_CHECKPOINT_DIRECTORY):
+            os.makedirs(self.TRAINED_MODEL_CHECKPOINT_DIRECTORY)
 
     def configure(self, configuration_context):
         """
@@ -153,7 +156,7 @@ class BaseNeuralNetwork:
         Save all variables of the TensorFlow graph to file.
         :return: The path to the save checkpoint file.
         """
-        return os.path.join(self.save_dir, self.__generate_file_name())
+        return os.path.join(self.TRAINED_MODEL_CHECKPOINT_DIRECTORY, self.__generate_file_name())
 
     def track_loss(self, current_loss):
         """
@@ -167,8 +170,8 @@ class BaseNeuralNetwork:
 
     def evaluate_accuracy(self, tf_session, validation_accuracy_pct, total_iterations):
         """
-        Saves the current TensorFlow model variables as they were at the time of observation if the provided accuracy is greater
-        than the previously declared best validation accuracy.
+        Saves the current TensorFlow model variables as they were at the time of observation if the provided accuracy
+        is greater than the previously declared best validation accuracy.
 
         :param tf_session: A TensorFlow Session to save checkpoints against.
         :param validation_accuracy_pct: A float corresponding to a validation accuracy measurement.
@@ -188,9 +191,7 @@ class BaseNeuralNetwork:
                     if self.saver is None:
                         self.saver = tf.train.Saver()
 
-                    # Save all variables of the TensorFlow graph to file.
-                    # save_path = os.path.join(self.save_dir, self.__generate_file_name())
-
+                    # Save all variables of the TensorFlow graph to file
                     self.saver.save(sess=tf_session, save_path=self.save_path())
                     return True
 
@@ -202,10 +203,7 @@ class BaseNeuralNetwork:
             return {
                 **data,
                 **{
-                    'top_5_predicted_classes': self.top_5,
                     'loss': self.loss,
-                    'weights': self.weights,
-                    'biases': self.biases,
                     'config': {
                         'hyper_parameters': self.config.hyper_parameters.__dict__,
                         'data': self.config.data.serialize()
@@ -262,7 +260,7 @@ class BaseNeuralNetwork:
             self.uuid,
             "{:.002f}".format(self.config.data.split_size),
             "{:.004f}".format(self.config.hyper_parameters.start_learning_rate),
-            self.config.hyper_parameters.epochs,
+            self.config.hyper_parameters.training_epochs,
             self.config.hyper_parameters.batch_size)
 
     def __persist(self):
@@ -278,7 +276,7 @@ class BaseNeuralNetwork:
                     "{:.004f}".format(self.config.data.split_size),
                     "{:.004f}".format(self.config.hyper_parameters.start_learning_rate),
                     "{:.004f}".format(self.config.hyper_parameters.end_learning_rate),
-                    self.config.hyper_parameters.epochs,
+                    self.config.hyper_parameters.training_epochs,
                     self.config.hyper_parameters.batch_size),
                 overwrite=True
             )
@@ -324,8 +322,10 @@ class BaseNeuralNetwork:
         return correct, cls_pred
 
     def __say_log(self, msg):
-        print(msg)
-        os.system('say "{}"'.format(msg))
+        if self.config.verbose:
+            print(msg)
+            if self.config.speak_up:
+                os.system('say "{}"'.format(msg))
 
     def __str__(self):
         result = []
