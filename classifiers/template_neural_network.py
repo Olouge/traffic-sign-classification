@@ -6,3 +6,6 @@ from classifiers.base_neural_network import BaseNeuralNetwork
 class TemplateNeuralNetwork(BaseNeuralNetwork):
     def fit(self):
         raise NotImplementedError
+
+    def predict(self):
+        raise NotImplementedError
