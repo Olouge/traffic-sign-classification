@@ -1,6 +1,7 @@
 import numpy as np
 
-from zimpy.datasets.german_traffic_signs import GermanTrafficSignDataset
+from zimpy.datasets.cifar10 import Cifar10Dataset
+
 
 def test_configure(data, one_hot=True, train_validate_split_percentage=0.05):
     data.configure(one_hot=one_hot, train_validate_split_percentage=train_validate_split_percentage)
@@ -22,9 +23,10 @@ def test_print(data):
 
         perm = np.arange(len(bin_data['labels']))
         np.random.shuffle(perm)
-        idx = perm[0]
-        label, sign_name = data.label_sign_name(bin_data['labels'], idx)
-        print(bin_name, 'label', idx, ':', label, '-', data.sign_names_map[label])
+        if len(perm) > 0:
+            idx = perm[0]
+            label, class_name = data.label_name(bin_data['labels'], idx)
+            print(bin_name, 'label', idx, ':', label, '-', data.class_names_map.get(label, '?'))
 
 def test_persist(data):
     data.persist(data.serialize(), overwrite=True)
@@ -36,7 +38,7 @@ def test_restore(data):
 print('[TEST] Configure from source file (non-encoded labels)')
 print('')
 
-data = GermanTrafficSignDataset()
+data = Cifar10Dataset()
 
 test_configure(data, one_hot=False)
 test_dimensions(data)
@@ -51,7 +53,7 @@ print('')
 print('[TEST] Configure from source file with one-hot encoded labels')
 print('')
 
-data = GermanTrafficSignDataset()
+data = Cifar10Dataset()
 
 test_configure(data, one_hot=True)
 test_dimensions(data)
@@ -71,7 +73,7 @@ print('')
 print('')
 
 
-data = GermanTrafficSignDataset()
+data = Cifar10Dataset()
 test_dimensions(data)
 test_restore(data)
 test_print(data)

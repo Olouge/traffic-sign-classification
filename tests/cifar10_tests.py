@@ -24,7 +24,7 @@ def test_print(data):
         np.random.shuffle(perm)
         idx = perm[0]
         label, class_name = data.label_name(bin_data['labels'], idx)
-        print(bin_name, 'label', idx, ':', label, '-', data.class_names_map[label])
+        print(bin_name, 'label', idx, ':', label, '-', data.class_names_map.get(label, '?'))
 
 def test_persist(data):
     data.persist(data.serialize(), overwrite=True)

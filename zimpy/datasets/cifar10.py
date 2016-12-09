@@ -104,7 +104,7 @@ class Cifar10Dataset:
             label = np.argmax(labels[idx])
         else:
             label = labels[idx]
-        return label, self.class_names_map[label]
+        return label, self.class_names_map.get(label, '?')
 
     def __compute_class_counts(self):
         labels = self.train_labels
@@ -291,6 +291,8 @@ class Cifar10Dataset:
         Loads in train features and labels and test features and labels from their respective pickle file
         """
         (self.train_orig, self.train_labels), (self.test_orig, self.test_labels) = cifar10.load_data()
+        self.train_labels = self.train_labels.flatten()
+        self.test_labels = self.test_labels.flatten()
 
     def __split_train_and_validation(self):
         """
