@@ -325,7 +325,7 @@ class BaseNeuralNetwork:
 
     def __say_log(self, msg):
         print(msg)
-        os.system('say "{}"'.format(msg))
+        # os.system('say "{}"'.format(msg))
 
     def __str__(self):
         result = []

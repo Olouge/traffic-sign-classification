@@ -98,13 +98,12 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     self.train_accuracy = accuracy.eval(train_feed_dict)
                     self.validate_accuracy = accuracy.eval(valid_feed_dict)
                     self.test_accuracy = accuracy.eval(test_feed_dict)
-                    self.predict_accuracy = accuracy.eval(predict_feed_dict)
 
                     # store predictions
                     self.train_predictions = tf.cast(correct_prediction.eval(train_feed_dict), "float").eval()
                     self.test_predictions = tf.cast(correct_prediction.eval(test_feed_dict), "float").eval()
-                    self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
                     self.validate_predictions = tf.cast(correct_prediction.eval(valid_feed_dict), "float").eval()
+
 
                     self.loss = sess.run(loss, feed_dict=valid_feed_dict)
                     self.track_loss(self.loss)
@@ -114,15 +113,18 @@ class SingleLayerLinear(BaseNeuralNetwork):
                     print("  train accuracy:    ", accuracy.eval(train_feed_dict))
                     print("  validate accuracy: ", accuracy.eval(valid_feed_dict))
                     print("  test accuracy:     ", accuracy.eval(test_feed_dict))
-                    print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
+                    if len(data.predict_flat) > 0:
+                        self.predict_accuracy = accuracy.eval(predict_feed_dict)
+                        self.predict_predictions = tf.cast(correct_prediction.eval(predict_feed_dict), "float").eval()
+                        print("  predict accuracy:  ", accuracy.eval(predict_feed_dict))
                     print("  batch size:        ", batch_size)
                     print("  learning rate:     ", sess.run(learning_rate))
                     print('')
 
                     y_pred = tf.nn.softmax(logits)
+
                     top_5_op = tf.nn.top_k(y_pred, 5)
-                    self.top_5 = sess.run(top_5_op,
-                                          feed_dict={features: data.predict_flat, labels: data.predict_labels})
+                    self.top_5 = sess.run(top_5_op, feed_dict={features: data.test_flat, labels: data.test_labels})
 
                     saved = self.evaluate_accuracy(sess, accuracy.eval(valid_feed_dict), total_iterations)
                     if saved == True:
